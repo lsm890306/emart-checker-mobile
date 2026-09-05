@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이마트 오프라인 실시간 재고 조회기</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f7f9fa; padding: 15px; display: flex; justify-content: center; margin: 0; }
+        .container { width: 100%; max-width: 1480px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h2 { margin-top: 0; color: #222; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 1.3rem; }
+        .author-text { font-size: 12px; color: #888; font-weight: normal; margin-left: 8px; }
+        
+        /* 설정 버튼 스타일 */
+        .config-btn { font-size: 13px; padding: 6px 14px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .config-btn:hover { background: #5a6268; }
+
+        /* 설정 모달 팝업 스타일 */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
+        .modal-box { background: white; width: 100%; max-width: 450px; padding: 25px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        .modal-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #222; display: flex; justify-content: space-between; align-items: center; }
+        .modal-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
+        .modal-btns { display: flex; justify-content: flex-end; gap: 8px; }
+
+        /* 메인 레이아웃 (반응형 적용: 기본 세로 배치, PC에서는 가로 배치) */
+        .main-layout { display: flex; flex-direction: column; gap: 20px; align-items: stretch; }
+        .left-content { flex: 1; min-width: 0; }
+        .center-sidebar { width: 100%; display: flex; flex-direction: column; gap: 15px; } 
+        .right-sidebar { width: 100%; display: flex; flex-direction: column; gap: 15px; } 
+
+        .control-panel { display: flex; gap: 8px; margin-bottom: 15px; align-items: center; flex-wrap: wrap; }
+        
+        /* 매장 선택 박스 스타일 */
+        .store-selector-box { margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+        .region-tabs { display: flex; gap: 6px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 10px; flex-wrap: wrap; }
+        .region-tab { padding: 8px 14px; background: #e9ecef; border: 1px solid #ced4da; border-radius: 6px; cursor: pointer; font-weight: bold; color: #495057; font-size: 13px; transition: all 0.2s; }
+        .region-tab.active { background: #222; color: white; border-color: #222; }
+        .region-tab.fav { background: #fff3cd; color: #856404; border-color: #ffeeba; }
+        .region-tab.fav.active { background: #ffc107; color: #000; border-color: #ffc107; }
+        
+        .region-content { display: none; }
+        .region-content.active { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); 
+            gap: 8px; 
+            padding-top: 5px; 
+        }
+        .region-content label { 
+            font-size: 13px; 
+            cursor: pointer; 
+            color: #333; 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between;
+            background: white; 
+            padding: 8px 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px; 
+            transition: background 0.1s;
+        }
+        .region-content label:hover { background: #f1f3f5; border-color: #bbb; }
+        .region-content input { cursor: pointer; }
+        
+        .store-controls { display: flex; align-items: center; gap: 8px; }
+        .star-btn { cursor: pointer; font-size: 16px; color: #ccc; user-select: none; transition: color 0.1s; padding: 2px; }
+        .star-btn.favorited { color: #ffc107; }
+
+        input[type="text"] { padding: 10px; border: 1px solid #ddd; border-radius: 6px; flex: 1; min-width: 200px; }
+        select { padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        .btn { padding: 10px 18px; background: #222; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; white-space: nowrap; }
+        .btn.primary { background: #0d6efd; }
+        .btn.success { background: #198754; }
+        .btn.stop { background: #d9534f; }
+        
+        .alarm-label { display: flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 13px; cursor: pointer; }
+        
+        /* 상태 바 및 전체 숨기기 버튼 영역 */
+        .status-bar-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 8px; }
+        .status-text { font-size: 13px; color: #666; margin: 0; }
+        .action-sm-btn { font-size: 12px; padding: 4px 10px; background: #fff; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-weight: bold; color: #333; }
+        .action-sm-btn:hover { background: #f1f3f5; }
+        
+        /* 결과 아이템 스타일 */
+        .result-item { border: 1px solid #eee; padding: 12px 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; background: #fff; gap: 10px; flex-wrap: wrap; }
+        .price-text { font-weight: bold; color: #b12704; font-size: 1.1em; display: block; text-align: right; margin-bottom: 4px; }
+        
+        .highlight-store { font-weight: bold; color: #000; font-size: 1.05em; }
+        .normal-store { font-weight: normal; color: #555; }
+
+        .stock-badge { padding: 5px 10px; border-radius: 6px; font-weight: bold; font-size: 0.95em; display: inline-block; white-space: nowrap; }
+        .in-stock { background: #e8f5e9; color: #198754; border: 1px solid #c3e6cb; }
+        .check-stock { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .sold-out { background: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        
+        .result-right-col { display: flex; flex-direction: column; align-items: flex-end; }
+
+        /* 사이드바 박스 */
+        .sidebar-box { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; margin-bottom: 15px; }
+        .sidebar-title { font-weight: bold; font-size: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .history-list { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; }
+        .history-item { background: white; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; transition: background 0.1s; }
+        .history-item:hover { background: #f1f3f5; border-color: #0d6efd; }
+        .history-info { overflow: hidden; cursor: pointer; flex: 1; margin-right: 8px; }
+        .history-name { font-weight: bold; font-size: 13px; color: #333; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .history-barcode { font-size: 11px; color: #777; }
+        .history-del-btn { font-size: 12px; color: #aaa; cursor: pointer; padding: 3px 6px; border-radius: 3px; border: 1px solid #ddd; background: #fff; white-space: nowrap; }
+        .history-del-btn:hover { color: #d9534f; border-color: #d9534f; }
+
+        /* 참고 바코드 목록 박스 스타일 */
+        .ref-list { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; }
+        .ref-item { background: white; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; transition: background 0.1s; }
+        .ref-item:hover { background: #f1f3f5; border-color: #0d6efd; }
+        .ref-name { font-weight: bold; font-size: 13px; color: #333; margin-bottom: 3px; }
+        .ref-barcode { font-size: 11px; color: #0d6efd; }
+
+        .monitor-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
+        .monitor-card { background: white; padding: 12px; border: 1px solid #ddd; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; }
+        .monitor-card-top { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 10px; }
+        .monitor-info { overflow: hidden; margin-right: 5px; flex: 1; cursor: pointer; }
+        .monitor-name { font-weight: bold; font-size: 13px; color: #333; margin-bottom: 3px; word-break: break-all; }
+        .monitor-barcode { font-size: 11px; color: #777; }
+        .monitor-right { display: flex; align-items: center; gap: 8px; }
+        .monitor-status { font-size: 11px; font-weight: bold; padding: 4px 8px; border-radius: 4px; white-space: nowrap; background: #e9ecef; color: #495057; }
+        .monitor-status.has-stock { background: #e8f5e9; color: #198754; border: 1px solid #c3e6cb; cursor: pointer; transition: background 0.2s; }
+        .monitor-status.has-stock:hover { background: #d1e7dd; }
+        .monitor-del-btn { font-size: 12px; color: #aaa; cursor: pointer; padding: 3px 6px; border-radius: 3px; border: 1px solid #ddd; background: #fff; }
+        .monitor-del-btn:hover { color: #d9534f; border-color: #d9534f; }
+        
+        .monitor-time { font-size: 11px; color: #888; margin-top: 2px; }
+
+        .monitor-detail-panel { background: #fdfdfe; border-top: 1px dashed #ddd; padding-top: 8px; margin-top: 4px; display: none; font-size: 12px; }
+        .monitor-detail-panel.active { display: block; }
+        .monitor-detail-row { display: flex; justify-content: space-between; padding: 4px 0; color: #198754; font-weight: bold; border-bottom: 1px solid #f1f1f1; }
+        .monitor-detail-row:last-child { border-bottom: none; }
+
+        /* 데스크탑(PC) 화면 레이아웃 최적화 (가로 넓이가 1024px 이상일 때) */
+        @media (min-width: 1024px) {
+            body { padding: 20px; }
+            .main-layout { flex-direction: row; align-items: flex-start; }
+            .center-sidebar { width: 330px; }
+            .right-sidebar { width: 320px; }
+            .history-list, .ref-list { max-height: 320px; }
+            .monitor-list { max-height: 720px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>
+            <span>📦 이마트 오프라인 실시간 재고 조회기 <span class="author-text">Made by sunshine</span></span>
+            <button type="button" class="config-btn" onclick="openConfigModal()">⚙️ 설정 (웹훅)</button>
+        </h2>
+        
+        <div class="modal-overlay" id="configModal">
+            <div class="modal-box">
+                <div class="modal-title">
+                    <span>디스코드 웹훅 설정</span>
+                    <button type="button" onclick="closeConfigModal()" style="border:none; background:none; font-size:16px; cursor:pointer;">✕</button>
+                </div>
+                <div style="font-size: 12px; color: #666; margin-bottom: 8px;">디스코드 채널 웹훅 URL을 입력하세요.</div>
+                <input type="text" id="webhookInput" class="modal-input" placeholder="https://discord.com/api/webhooks/...">
+                <div class="modal-btns">
+                    <button type="button" class="action-sm-btn" onclick="testDiscordWebhook()" style="background: #198754; color: white; border: none;">테스트 전송</button>
+                    <button type="button" class="action-sm-btn" onclick="closeConfigModal()" style="background: #ccc; border: none;">취소</button>
+                    <button type="button" class="btn primary" style="padding: 4px 14px; font-size: 12px;" onclick="saveDiscordWebhook()">저장하기</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-layout">
+            <div class="left-content">
+                <div class="control-panel">
+                    <input type="text" id="barcodeInput" value="" placeholder="바코드 입력 (쉼표 복수 입력)">
+                    
+                    <button class="btn primary" onclick="runSearch(true)">실시간 재고 조회 (1회)</button>
+                    <button class="btn success" onclick="addCurrentToMonitor()">자동조회 추가</button>
+                    <label class="alarm-label"><input type="checkbox" id="alarmCheck" checked> 🔔 알림음</label>
+                    <label class="alarm-label" style="margin-left: 5px;"><input type="checkbox" id="desktopNotifCheck" onchange="requestDesktopPermission()"> 💻 바탕화면 알림</label>
+                </div>
+
+                <div class="store-selector-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                        <strong style="font-size: 15px;">조회 매장 선택</strong>
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <button type="button" onclick="selectCurrentTab(true)" style="padding: 4px 10px; font-size: 12px; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; background: white;">현재 지역 전체선택</button>
+                            <button type="button" onclick="selectCurrentTab(false)" style="padding: 4px 10px; font-size: 12px; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; background: white;">현재 지역 전체해제</button>
+                            <button type="button" onclick="selectAllStores(true)" style="padding: 4px 10px; font-size: 12px; cursor: pointer; border-radius: 4px; border: 1px solid #0d6efd; background: #0d6efd; color: white;">전지역 전체선택</button>
+                            <button type="button" onclick="selectAllStores(false)" style="padding: 4px 10px; font-size: 12px; cursor: pointer; border-radius: 4px; border: 1px solid #dc3545; background: #dc3545; color: white;">전지역 전체해제</button>
+                        </div>
+                    </div>
+
+                    <div class="region-tabs">
+                        <button type="button" class="region-tab fav active" onclick="switchTab('favorite', this)">⭐ 즐겨찾기</button>
+                        <button type="button" class="region-tab" onclick="switchTab('seoul', this)">서울</button>
+                        <button type="button" class="region-tab" onclick="switchTab('gyeonggi', this)">경기</button>
+                        <button type="button" class="region-tab" onclick="switchTab('incheon', this)">인천</button>
+                        <button type="button" class="region-tab" onclick="switchTab('gangwon', this)">강원</button>
+                    </div>
+
+                    <div id="tab-favorite" class="region-content active"></div>
+
+                    <div id="tab-seoul" class="region-content">
+                        <label><span class="store-name">가든5점</span><span class="store-controls"><input type="checkbox" name="store" value="1118" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1118', '가든5점')">★</span></span></label>
+                        <label><span class="store-name">구로점</span><span class="store-controls"><input type="checkbox" name="store" value="1012" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1012', '구로점')">★</span></span></label>
+                        <label><span class="store-name">마포점</span><span class="store-controls"><input type="checkbox" name="store" value="1123" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1123', '마포점')">★</span></span></label>
+                        <label><span class="store-name">명일점</span><span class="store-controls"><input type="checkbox" name="store" value="1041" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1041', '명일점')">★</span></span></label>
+                        <label><span class="store-name">목동점</span><span class="store-controls"><input type="checkbox" name="store" value="1104" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1104', '목동점')">★</span></span></label>
+                        <label><span class="store-name">묵동점</span><span class="store-controls"><input type="checkbox" name="store" value="1117" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1117', '묵동점')">★</span></span></label>
+                        <label><span class="store-name">미아점</span><span class="store-controls"><input type="checkbox" name="store" value="1093" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1093', '미아점')">★</span></span></label>
+                        <label><span class="store-name">수색점</span><span class="store-controls"><input type="checkbox" name="store" value="1108" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1108', '수색점')">★</span></span></label>
+                        <label><span class="store-name">수서점</span><span class="store-controls"><input type="checkbox" name="store" value="1029" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1029', '수서점')">★</span></span></label>
+                        <label><span class="store-name">신도림점</span><span class="store-controls"><input type="checkbox" name="store" value="1083" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1083', '신도림점')">★</span></span></label>
+                        <label><span class="store-name">신월점</span><span class="store-controls"><input type="checkbox" name="store" value="1013" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1013', '신월점')">★</span></span></label>
+                        <label><span class="store-name">신촌점</span><span class="store-controls"><input type="checkbox" name="store" value="1139" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1139', '신촌점')">★</span></span></label>
+                        <label><span class="store-name">양재점</span><span class="store-controls"><input type="checkbox" name="store" value="1062" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1062', '양재점')">★</span></span></label>
+                        <label><span class="store-name">여의도점</span><span class="store-controls"><input type="checkbox" name="store" value="1087" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1087', '여의도점')">★</span></span></label>
+                        <label><span class="store-name">역삼점</span><span class="store-controls"><input type="checkbox" name="store" value="1095" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1095', '역삼점')">★</span></span></label>
+                        <label><span class="store-name">영등포점</span><span class="store-controls"><input type="checkbox" name="store" value="1106" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1106', '영등포점')">★</span></span></label>
+                        <label><span class="store-name">왕십리점</span><span class="store-controls"><input type="checkbox" name="store" value="1090" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1090', '왕십리점')">★</span></span></label>
+                        <label><span class="store-name">용산점</span><span class="store-controls"><input type="checkbox" name="store" value="1060" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1060', '용산점')">★</span></span></label>
+                        <label><span class="store-name">은평점</span><span class="store-controls"><input type="checkbox" name="store" value="1033" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1033', '은평점')">★</span></span></label>
+                        <label><span class="store-name">자양점</span><span class="store-controls"><input type="checkbox" name="store" value="1080" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1080', '자양점')">★</span></span></label>
+                        <label><span class="store-name">창동점</span><span class="store-controls"><input type="checkbox" name="store" value="1001" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1001', '창동점')">★</span></span></label>
+                        <label><span class="store-name">천호점</span><span class="store-controls"><input type="checkbox" name="store" value="1016" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1016', '천호점')">★</span></span></label>
+                        <label><span class="store-name">청계천점</span><span class="store-controls"><input type="checkbox" name="store" value="1089" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1089', '청계천점')">★</span></span></label>
+                        <label><span class="store-name">하월곡점</span><span class="store-controls"><input type="checkbox" name="store" value="1125" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1125', '하월곡점')">★</span></span></label>
+                    </div>
+
+                    <div id="tab-gyeonggi" class="region-content">
+                        <label><span class="store-name">스타필드마켓 동탄점</span><span class="store-controls"><input type="checkbox" name="store" value="1085" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1085', '스타필드마켓 동탄점')">★</span></span></label>
+                        <label><span class="store-name">스타필드마켓 일산점</span><span class="store-controls"><input type="checkbox" name="store" value="1133" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1133', '스타필드마켓 일산점')">★</span></span></label>
+                        <label><span class="store-name">스타필드마켓 죽전점</span><span class="store-controls"><input type="checkbox" name="store" value="1068" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1068', '스타필드마켓 죽전점')">★</span></span></label>
+                        <label><span class="store-name">경기광주점</span><span class="store-controls"><input type="checkbox" name="store" value="1107" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1107', '경기광주점')">★</span></span></label>
+                        <label><span class="store-name">과천점</span><span class="store-controls"><input type="checkbox" name="store" value="1135" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1135', '과천점')">★</span></span></label>
+                        <label><span class="store-name">광교점</span><span class="store-controls"><input type="checkbox" name="store" value="1134" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1134', '광교점')">★</span></span></label>
+                        <label><span class="store-name">광명소하점</span><span class="store-controls"><input type="checkbox" name="store" value="1112" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1112', '광명소하점')">★</span></span></label>
+                        <label><span class="store-name">김포한강점</span><span class="store-controls"><input type="checkbox" name="store" value="1131" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1131', '김포한강점')">★</span></span></label>
+                        <label><span class="store-name">남양주점</span><span class="store-controls"><input type="checkbox" name="store" value="1069" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1069', '남양주점')">★</span></span></label>
+                        <label><span class="store-name">다산점</span><span class="store-controls"><input type="checkbox" name="store" value="1086" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1086', '다산점')">★</span></span></label>
+                        <label><span class="store-name">동백점</span><span class="store-controls"><input type="checkbox" name="store" value="1075" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1075', '동백점')">★</span></span></label>
+                        <label><span class="store-name">별내점</span><span class="store-controls"><input type="checkbox" name="store" value="1129" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1129', '별내점')">★</span></span></label>
+                        <label><span class="store-name">보라점</span><span class="store-controls"><input type="checkbox" name="store" value="1094" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1094', '보라점')">★</span></span></label>
+                        <label><span class="store-name">부천점</span><span class="store-controls"><input type="checkbox" name="store" value="1998" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1998', '부천점')">★</span></span></label>
+                        <label><span class="store-name">분당점</span><span class="store-controls"><input type="checkbox" name="store" value="1003" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1003', '분당점')">★</span></span></label>
+                        <label><span class="store-name">산본점</span><span class="store-controls"><input type="checkbox" name="store" value="1015" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1015', '산본점')">★</span></span></label>
+                        <label><span class="store-name">서수원점</span><span class="store-controls"><input type="checkbox" name="store" value="1067" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1067', '서수원점')">★</span></span></label>
+                        <label><span class="store-name">성남점</span><span class="store-controls"><input type="checkbox" name="store" value="1110" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1110', '성남점')">★</span></span></label>
+                        <label><span class="store-name">수원점</span><span class="store-controls"><input type="checkbox" name="store" value="1030" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1030', '수원점')">★</span></span></label>
+                        <label><span class="store-name">수지점</span><span class="store-controls"><input type="checkbox" name="store" value="1047" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1047', '수지점')">★</span></span></label>
+                        <label><span class="store-name">안산고잔점</span><span class="store-controls"><input type="checkbox" name="store" value="1044" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1044', '안산고잔점')">★</span></span></label>
+                        <label><span class="store-name">안성점</span><span class="store-controls"><input type="checkbox" name="store" value="1092" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1092', '안성점')">★</span></span></label>
+                        <label><span class="store-name">안양점</span><span class="store-controls"><input type="checkbox" name="store" value="1999" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1999', '안양점')">★</span></span></label>
+                        <label><span class="store-name">양주점</span><span class="store-controls"><input type="checkbox" name="store" value="1055" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1055', '양주점')">★</span></span></label>
+                        <label><span class="store-name">여주점</span><span class="store-controls"><input type="checkbox" name="store" value="1084" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1084', '여주점')">★</span></span></label>
+                        <label><span class="store-name">오산점</span><span class="store-controls"><input type="checkbox" name="store" value="1070" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1070', '오산점')">★</span></span></label>
+                        <label><span class="store-name">용인점</span><span class="store-controls"><input type="checkbox" name="store" value="1071" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1071', '용인점')">★</span></span></label>
+                        <label><span class="store-name">의왕점</span><span class="store-controls"><input type="checkbox" name="store" value="1137" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1137', '의왕점')">★</span></span></label>
+                        <label><span class="store-name">의정부점</span><span class="store-controls"><input type="checkbox" name="store" value="1128" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1128', '의정부점')">★</span></span></label>
+                        <label><span class="store-name">이천점</span><span class="store-controls"><input type="checkbox" name="store" value="1020" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1020', '이천점')">★</span></span></label>
+                        <label><span class="store-name">일산점</span><span class="store-controls"><input type="checkbox" name="store" value="1002" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1002', '일산점')">★</span></span></label>
+                        <label><span class="store-name">중동점</span><span class="store-controls"><input type="checkbox" name="store" value="1097" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1097', '중동점')">★</span></span></label>
+                        <label><span class="store-name">진접점</span><span class="store-controls"><input type="checkbox" name="store" value="1115" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1115', '진접점')">★</span></span></label>
+                        <label><span class="store-name">파주운정점</span><span class="store-controls"><input type="checkbox" name="store" value="1119" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1119', '파주운정점')">★</span></span></label>
+                        <label><span class="store-name">파주점</span><span class="store-controls"><input type="checkbox" name="store" value="1057" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1057', '파주점')">★</span></span></label>
+                        <label><span class="store-name">평촌점</span><span class="store-controls"><input type="checkbox" name="store" value="1099" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1099', '평촌점')">★</span></span></label>
+                        <label><span class="store-name">평택점</span><span class="store-controls"><input type="checkbox" name="store" value="1032" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1032', '평택점')">★</span></span></label>
+                        <label><span class="store-name">포천점</span><span class="store-controls"><input type="checkbox" name="store" value="1111" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1111', '포천점')">★</span></span></label>
+                        <label><span class="store-name">풍산점</span><span class="store-controls"><input type="checkbox" name="store" value="1130" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1130', '풍산점')">★</span></span></label>
+                        <label><span class="store-name">하남점</span><span class="store-controls"><input type="checkbox" name="store" value="1088" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1088', '하남점')">★</span></span></label>
+                        <label><span class="store-name">화성봉담점</span><span class="store-controls"><input type="checkbox" name="store" value="1126" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1126', '화성봉담점')">★</span></span></label>
+                        <label><span class="store-name">화정점</span><span class="store-controls"><input type="checkbox" name="store" value="1096" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1096', '화정점')">★</span></span></label>
+                        <label><span class="store-name">흥덕점</span><span class="store-controls"><input type="checkbox" name="store" value="1105" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1105', '흥덕점')">★</span></span></label>
+                    </div>
+
+                    <div id="tab-incheon" class="region-content">
+                        <label><span class="store-name">검단점</span><span class="store-controls"><input type="checkbox" name="store" value="1077" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1077', '검단점')">★</span></span></label>
+                        <label><span class="store-name">계양점</span><span class="store-controls"><input type="checkbox" name="store" value="1098" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1098', '계양점')">★</span></span></label>
+                        <label><span class="store-name">동인천점</span><span class="store-controls"><input type="checkbox" name="store" value="1023" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1023', '동인천점')">★</span></span></label>
+                        <label><span class="store-name">연수점</span><span class="store-controls"><input type="checkbox" name="store" value="1042" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1042', '연수점')">★</span></span></label>
+                    </div>
+
+                    <div id="tab-gangwon" class="region-content">
+                        <label><span class="store-name">강릉점</span><span class="store-controls"><input type="checkbox" name="store" value="1043" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1043', '강릉점')">★</span></span></label>
+                        <label><span class="store-name">동해점</span><span class="store-controls"><input type="checkbox" name="store" value="1052" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1052', '동해점')">★</span></span></label>
+                        <label><span class="store-name">속초점</span><span class="store-controls"><input type="checkbox" name="store" value="1049" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1049', '속초점')">★</span></span></label>
+                        <label><span class="store-name">원주점</span><span class="store-controls"><input type="checkbox" name="store" value="1011" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1011', '원주점')">★</span></span></label>
+                        <label><span class="store-name">춘천점</span><span class="store-controls"><input type="checkbox" name="store" value="1066" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1066', '춘천점')">★</span></span></label>
+                        <label><span class="store-name">태백점</span><span class="store-controls"><input type="checkbox" name="store" value="1079" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1079', '태백점')">★</span></span></label>
+                    </div>
+                </div>
+                
+                <div class="status-bar-area">
+                    <div class="status-text" id="statusLog">대기 중... 상품 바코드와 매장을 선택하고 조회해주세요.</div>
+                    <button type="button" id="toggleResultHideBtn" class="action-sm-btn" onclick="toggleResultHide()" style="display: none;">검색 결과 숨기기</button>
+                </div>
+                <div id="resultBox"></div>
+            </div>
+
+            <div class="center-sidebar">
+                <div class="sidebar-box">
+                    <div class="sidebar-title" style="margin-bottom: 8px;">
+                        <span>실시간 모니터링</span>
+                        <div style="display: flex; gap: 4px;">
+                            <button type="button" onclick="clearMonitorList()" style="font-size: 11px; padding: 2px 6px; cursor: pointer; border: 1px solid #ccc; background: white; border-radius: 4px;">전체 해제</button>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 6px; margin-bottom: 12px; align-items: center;">
+                        <select id="intervalSec" style="flex: 1; padding: 6px; font-size: 12px;">
+                            <option value="10000">10초마다</option>
+                            <option value="60000">1분마다</option>
+                            <option value="300000" selected>5분마다</option>
+                        </select>
+                        <button id="toggleMonitorBtn" class="btn primary" style="padding: 6px 12px; font-size: 12px;" onclick="toggleMonitorState()">모니터링 시작</button>
+                    </div>
+
+                    <div class="monitor-list" id="monitorList">
+                        <div style="font-size: 12px; color: #888; text-align: center; padding: 15px 0;">감시 중인 상품 없음</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-sidebar">
+                <div class="sidebar-box">
+                    <div class="sidebar-title">
+                        <span>최근 조회한 상품</span>
+                        <button type="button" onclick="clearHistory()" style="font-size: 11px; padding: 2px 6px; cursor: pointer; border: 1px solid #ccc; background: white; border-radius: 4px;">전체 삭제</button>
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <div style="font-size: 12px; color: #888; text-align: center; padding: 15px 0;">조회된 상품이 없습니다.</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-box">
+                    <div class="sidebar-title">
+                        <span>📌 참고 바코드 목록</span>
+                    </div>
+                    <div class="ref-list">
+                        <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800332710644'; runSearch(true);" title="클릭 시 검색창에 입력">
+                            <div class="ref-name">원피스카드게임 엑스트라 부스터</div>
+                            <div class="ref-barcode">8800332710644</div>
+                        </div>
+                        <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800332710620'; runSearch(true);" title="클릭 시 검색창에 입력">
+                            <div class="ref-name">원피스카드게임 계승되는의지</div>
+                            <div class="ref-barcode">8800332710620</div>
+                        </div>
+                        <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800332710668'; runSearch(true);" title="클릭 시 검색창에 입력">
+                            <div class="ref-name">원피스카드게임 창해의칠걸</div>
+                            <div class="ref-barcode">8800332710668</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORE_MAP = {
+            "1118": "(서울) 가든5점", "1012": "(서울) 구로점", "1123": "(서울) 마포점",
+            "1041": "(서울) 명일점", "1104": "(서울) 목동점", "1117": "(서울) 묵동점", "1093": "(서울) 미아점",
+            "1108": "(서울) 수색점", "1029": "(서울) 수서점", "1083": "(서울) 신도림점", "1013": "(서울) 신월점",
+            "1139": "(서울) 신촌점", "1062": "(서울) 양재점", "1087": "(서울) 여의도점", "1095": "(서울) 역삼점",
+            "1106": "(서울) 영등포점", "1090": "(서울) 왕십리점", "1060": "(서울) 용산점", "1033": "(서울) 은평점",
+            "1080": "(서울) 자양점", "1001": "(서울) 창동점", "1016": "(서울) 천호점", "1089": "(서울) 청계천점",
+            "1125": "(서울) 하월곡점",
+            "1085": "(경기) 스타필드마켓 동탄점", "1133": "(경기) 스타필드마켓 일산점", "1068": "(경기) 스타필드마켓 죽전점",
+            "1107": "(경기) 경기광주점", "1135": "(경기) 과천점", "1134": "(경기) 광교점", "1112": "(경기) 광명소하점",
+            "1131": "(경기) 김포한강점", "1069": "(경기) 남양주점", "1086": "(경기) 다산점", "1075": "(경기) 동백점",
+            "1129": "(경기) 별내점", "1094": "(경기) 보라점", "1998": "(경기) 부천점", "1003": "(경기) 분당점",
+            "1015": "(경기) 산본점", "1067": "(경기) 서수원점", "1110": "(경기) 성남점", "1030": "(경기) 수원점",
+            "1047": "(경기) 수지점", "1044": "(경기) 안산고잔점", "1092": "(경기) 안성점", "1999": "(경기) 안양점",
+            "1055": "(경기) 양주점", "1084": "(경기) 여주점", "1070": "(경기) 오산점", "1071": "(경기) 용인점",
+            "1137": "(경기) 의왕점", "1128": "(경기) 의정부점", "1020": "(경기) 이천점", "1002": "(경기) 일산점",
+            "1097": "(경기) 중동점", "1115": "(경기) 진접점", "1119": "(경기) 파주운정점", "1057": "(경기) 파주점",
+            "1099": "(경기) 평촌점", "1032": "(경기) 평택점", "1111": "(경기) 포천점", "1130": "(경기) 풍산점",
+            "1088": "(경기) 하남점", "1126": "(경기) 화성봉담점", "1096": "(경기) 화정점", "1105": "(경기) 흥덕점",
+            "1077": "(인천) 검단점", "1098": "(인천) 계양점", "1023": "(인천) 동인천점", "1042": "(인천) 연수점",
+            "1043": "(강원) 강릉점", "1052": "(강원) 동해점", "1049": "(강원) 속초점", "1011": "(강원) 원주점",
+            "1066": "(강원) 춘천점", "1079": "(강원) 태백점"
+        };
+
+        let monitorInterval = null;
+        let isMonitoringRunning = false;
+        let activeMonitors = {};
+        let isResultHidden = false;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadDiscordWebhook();
+            loadStoreCheckStates();
+            loadFavorites();
+            loadMonitors();
+            loadHistory();
+            renderMonitorList();
+        });
+
+        function openConfigModal() {
+            document.getElementById('webhookInput').value = localStorage.getItem('emart_discord_webhook') || '';
+            document.getElementById('configModal').style.display = 'flex';
+        }
+        function closeConfigModal() {
+            document.getElementById('configModal').style.display = 'none';
+        }
+        function saveDiscordWebhook() {
+            let url = document.getElementById('webhookInput').value.trim();
+            localStorage.setItem('emart_discord_webhook', url);
+            alert("디스코드 웹훅 주소가 저장되었습니다!");
+            closeConfigModal();
+        }
+        function testDiscordWebhook() {
+            let url = document.getElementById('webhookInput').value.trim();
+            if (!url) {
+                alert("테스트할 웹훅 주소를 먼저 입력해주세요!");
+                return;
+            }
+            
+            const payload = {
+                embeds: [{
+                    title: "🔔 [이마트 재고 조회기] 웹훅 연동 테스트",
+                    description: "디스코드 웹훅이 정상적으로 연결되었습니다!",
+                    color: 3066993,
+                    fields: [
+                        { name: "📦 상품명", value: "원피스카드게임 (테스트)", inline: false },
+                        { name: "📍 발견 점포 (예시)", value: "• (서울) 역삼점: **2개**", inline: false }
+                    ],
+                    footer: { text: "이마트 오프라인 실시간 재고 조회기" },
+                    timestamp: new Date().toISOString()
+                }]
+            };
+
+            fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            }).then(res => {
+                if (res.ok || res.status === 204) {
+                    alert("테스트 메시지 전송 성공!");
+                } else {
+                    alert("전송 실패. 웹훅 주소를 다시 확인해주세요.");
+                }
+            }).catch(err => {
+                alert("전송 오류 발생: " + err);
+            });
+        }
+        function loadDiscordWebhook() {
+            return localStorage.getItem('emart_discord_webhook') || '';
+        }
+
+        function toggleResultHide() {
+            isResultHidden = !isResultHidden;
+            const resultBox = document.getElementById('resultBox');
+            const hideBtn = document.getElementById('toggleResultHideBtn');
+            
+            if (isResultHidden) {
+                resultBox.style.display = 'none';
+                hideBtn.innerText = '검색 결과 보기';
+            } else {
+                resultBox.style.display = 'block';
+                hideBtn.innerText = '검색 결과 숨기기';
+            }
+        }
+
+        function sendDiscordWebhook(payload) {
+            let webhookUrl = loadDiscordWebhook();
+            if (!webhookUrl || webhookUrl.trim() === "") return;
+            
+            let bodyData = {};
+            if (typeof payload === 'string') {
+                bodyData = { content: payload };
+            } else {
+                bodyData = { embeds: [payload] };
+            }
+
+            fetch(webhookUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(bodyData)
+            }).catch(err => console.error("Discord Webhook Error:", err));
+        }
+
+        function requestDesktopPermission() {
+            const cb = document.getElementById('desktopNotifCheck');
+            if (cb.checked) {
+                if (!("Notification" in window)) {
+                    alert("이 브라우저는 바탕화면 알림을 지원하지 않습니다.");
+                    cb.checked = false;
+                    return;
+                }
+                Notification.requestPermission().then(permission => {
+                    if (permission !== "granted") {
+                        alert("알림 권한이 거부되었습니다.");
+                        cb.checked = false;
+                    }
+                });
+            }
+        }
+
+        function showDesktopNotification(title, bodyText) {
+            const cb = document.getElementById('desktopNotifCheck');
+            if (!cb || !cb.checked) return;
+            if (Notification.permission === "granted") {
+                new Notification(title, { body: bodyText });
+            }
+        }
+
+        function saveStoreCheckStates() {
+            let checkedStores = {};
+            document.querySelectorAll('input[name="store"]').forEach(cb => {
+                checkedStores[cb.value] = cb.checked;
+            });
+            localStorage.setItem('emart_checked_stores', JSON.stringify(checkedStores));
+        }
+
+        function loadStoreCheckStates() {
+            let savedStates = localStorage.getItem('emart_checked_stores');
+            if (!savedStates) return;
+            try {
+                let parsed = JSON.parse(savedStates);
+                document.querySelectorAll('input[name="store"]').forEach(cb => {
+                    if (parsed[cb.value] !== undefined) {
+                        cb.checked = parsed[cb.value];
+                    }
+                });
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        function saveMonitors() {
+            localStorage.setItem('emart_active_monitors', JSON.stringify(activeMonitors));
+        }
+
+        function loadMonitors() {
+            let saved = localStorage.getItem('emart_active_monitors');
+            if (!saved) return;
+            try {
+                activeMonitors = JSON.parse(saved);
+            } catch(e) {
+                activeMonitors = {};
+            }
+        }
+
+        function getFavorites() {
+            let favs = localStorage.getItem('emart_favorites');
+            return favs ? JSON.parse(favs) : [];
+        }
+
+        function saveFavorites(favs) {
+            localStorage.setItem('emart_favorites', JSON.stringify(favs));
+        }
+
+        function loadFavorites() {
+            let favs = getFavorites();
+            let favBox = document.getElementById('tab-favorite');
+            favBox.innerHTML = '';
+
+            document.querySelectorAll('.region-content label').forEach(label => {
+                if (label.closest('#tab-favorite')) return;
+                let cb = label.querySelector('input[type="checkbox"]');
+                let star = label.querySelector('.star-btn');
+                if (!cb || !star) return;
+
+                let val = cb.value;
+                if (favs.includes(val)) {
+                    star.classList.add('favorited');
+                    star.innerHTML = '✦';
+                } else {
+                    star.classList.remove('favorited');
+                    star.innerHTML = '★';
+                }
+            });
+
+            favs.forEach(storeId => {
+                let fullName = STORE_MAP[storeId];
+                if (!fullName) return;
+                let storeName = fullName.split(') ')[1] || fullName;
+
+                let originalCb = document.querySelector(`input[name="store"][value="${storeId}"]`);
+                let isChecked = originalCb ? originalCb.checked : true;
+
+                let label = document.createElement('label');
+                label.innerHTML = `
+                    <span class="store-name">${storeName}</span>
+                    <span class="store-controls">
+                        <input type="checkbox" name="store" value="${storeId}" ${isChecked ? 'checked' : ''} onchange="saveStoreCheckStates()">
+                        <span class="star-btn favorited" onclick="toggleFavorite(event, '${storeId}', '${storeName}')">✦</span>
+                    </span>
+                `;
+                let newCb = label.querySelector('input');
+                newCb.addEventListener('change', function() {
+                    if (originalCb) originalCb.checked = this.checked;
+                    saveStoreCheckStates();
+                });
+
+                favBox.appendChild(label);
+            });
+        }
+
+        function toggleFavorite(event, storeId, storeName) {
+            event.stopPropagation();
+            event.preventDefault();
+            
+            let favs = getFavorites();
+            let index = favs.indexOf(storeId);
+
+            if (index > -1) {
+                favs.splice(index, 1);
+            } else {
+                favs.push(storeId);
+            }
+
+            saveFavorites(favs);
+            loadFavorites();
+        }
+
+        function getHistory() {
+            let hist = localStorage.getItem('emart_search_history');
+            return hist ? JSON.parse(hist) : [];
+        }
+
+        function saveHistoryItem(barcode, itemName) {
+            if (!barcode || !itemName) return;
+            let hist = getHistory();
+            hist = hist.filter(item => item.barcode !== barcode);
+            hist.unshift({ barcode, itemName });
+            if (hist.length > 20) hist.pop();
+            localStorage.setItem('emart_search_history', JSON.stringify(hist));
+            loadHistory();
+        }
+
+        function removeHistoryItem(event, barcode) {
+            event.stopPropagation();
+            let hist = getHistory();
+            hist = hist.filter(item => item.barcode !== barcode);
+            localStorage.setItem('emart_search_history', JSON.stringify(hist));
+            loadHistory();
+        }
+
+        function loadHistory() {
+            let hist = getHistory();
+            let listEl = document.getElementById('historyList');
+            listEl.innerHTML = '';
+
+            if (hist.length === 0) {
+                listEl.innerHTML = '<div style="font-size: 12px; color: #888; text-align: center; padding: 15px 0;">조회된 상품이 없습니다.</div>';
+                return;
+            }
+
+            hist.forEach(item => {
+                let div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `
+                    <div class="history-info" onclick="
+                        document.getElementById('barcodeInput').value = '${item.barcode}';
+                        runSearch(true);
+                    ">
+                        <div class="history-name">${item.itemName}</div>
+                        <div class="history-barcode">${item.barcode}</div>
+                    </div>
+                    <button type="button" class="history-del-btn" onclick="removeHistoryItem(event, '${item.barcode}')">×</button>
+                `;
+                listEl.appendChild(div);
+            });
+        }
+
+        function clearHistory() {
+            localStorage.removeItem('emart_search_history');
+            loadHistory();
+        }
+
+        async function addCurrentToMonitor() {
+            const inputVal = document.getElementById('barcodeInput').value.trim();
+            const statusLog = document.getElementById('statusLog');
+
+            if (!inputVal) {
+                statusLog.innerText = "모니터링에 추가할 바코드를 입력해주세요!";
+                return;
+            }
+
+            const barcodes = inputVal.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            statusLog.innerText = "모니터링 등록 중...";
+
+            for (let barcode of barcodes) {
+                if (!activeMonitors[barcode]) {
+                    activeMonitors[barcode] = {
+                        itemName: `바코드: ${barcode}`,
+                        stockCount: 0,
+                        detailList: [],
+                        lastCheckedTime: null
+                    };
+                }
+            }
+            saveMonitors();
+            renderMonitorList();
+
+            await executeFetchForBarcodes(barcodes, false);
+            statusLog.innerText = "선택한 상품이 모니터링 목록에 추가되었습니다.";
+        }
+
+        function removeMonitorItem(event, barcode) {
+            event.stopPropagation();
+            delete activeMonitors[barcode];
+            saveMonitors();
+            renderMonitorList();
+        }
+
+        function toggleMonitorDetail(event, barcode) {
+            event.stopPropagation();
+            const detailPanel = document.getElementById(`detail-${barcode}`);
+            if (detailPanel) {
+                detailPanel.classList.toggle('active');
+            }
+        }
+
+        function renderMonitorList() {
+            let listEl = document.getElementById('monitorList');
+            listEl.innerHTML = '';
+
+            let keys = Object.keys(activeMonitors);
+            if (keys.length === 0) {
+                listEl.innerHTML = '<div style="font-size: 12px; color: #888; text-align: center; padding: 15px 0;">감시 중인 상품 없음</div>';
+                return;
+            }
+
+            keys.forEach(barcode => {
+                let item = activeMonitors[barcode];
+                let div = document.createElement('div');
+                div.className = 'monitor-card';
+                
+                let statusHtml = '';
+                if (item.stockCount > 0) {
+                    statusHtml = `<span class="monitor-status has-stock" onclick="toggleMonitorDetail(event, '${barcode}')">구매가능: ${item.stockCount}개 ▼</span>`;
+                } else {
+                    statusHtml = `<span class="monitor-status">품절 (0개)</span>`;
+                }
+
+                let detailsHtml = '';
+                if (item.detailList && item.detailList.length > 0) {
+                    let inStockStores = item.detailList.filter(d => d.stockQty > 0);
+                    if (inStockStores.length > 0) {
+                        detailsHtml = inStockStores.map(d => `
+                            <div class="monitor-detail-row">
+                                <span>${d.storeName}</span>
+                                <span>재고: ${d.stockQty}개</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        detailsHtml = '<div style="color: #888; text-align: center; padding: 4px;">재고 매장 없음</div>';
+                    }
+                } else {
+                    detailsHtml = '<div style="color: #888; text-align: center; padding: 4px;">상세 내역 없음</div>';
+                }
+
+                let timeHtml = item.lastCheckedTime ? `<div class="monitor-time">최근 확인: ${item.lastCheckedTime}</div>` : `<div class="monitor-time">최근 확인: 대기 중</div>`;
+
+                div.innerHTML = `
+                    <div class="monitor-card-top">
+                        <div class="monitor-info" onclick="document.getElementById('barcodeInput').value='${barcode}'; runSearch(true);">
+                            <div class="monitor-name">${item.itemName}</div>
+                            <div class="monitor-barcode">${barcode}</div>
+                            ${timeHtml}
+                        </div>
+                        <div class="monitor-right">
+                            ${statusHtml}
+                            <button type="button" class="monitor-del-btn" onclick="removeMonitorItem(event, '${barcode}')">×</button>
+                        </div>
+                    </div>
+                    <div class="monitor-detail-panel" id="detail-${barcode}">
+                        ${detailsHtml}
+                    </div>
+                `;
+                listEl.appendChild(div);
+            });
+        }
+
+        function clearMonitorList() {
+            if (isMonitoringRunning) {
+                toggleMonitorState();
+            }
+            activeMonitors = {};
+            saveMonitors();
+            renderMonitorList();
+        }
+
+        document.addEventListener('change', function(e) {
+            if (e.target.name === 'store') {
+                let val = e.target.value;
+                let isChecked = e.target.checked;
+                document.querySelectorAll(`input[name="store"][value="${val}"]`).forEach(cb => {
+                    cb.checked = isChecked;
+                });
+                saveStoreCheckStates();
+            }
+        });
+
+        function selectAllStores(status) {
+            document.querySelectorAll('input[name="store"]').forEach(cb => {
+                cb.checked = status;
+            });
+            saveStoreCheckStates();
+        }
+
+        function switchTab(regionId, tabElement) {
+            document.querySelectorAll('.region-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.region-tab').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + regionId).classList.add('active');
+            tabElement.classList.add('active');
+        }
+
+        function selectCurrentTab(status) {
+            const activeContent = document.querySelector('.region-content.active');
+            if (activeContent) {
+                activeContent.querySelectorAll('input[name="store"]').forEach(cb => {
+                    cb.checked = status;
+                    document.querySelectorAll(`input[name="store"][value="${cb.value}"]`).forEach(oCb => oCb.checked = status);
+                });
+                saveStoreCheckStates();
+            }
+        }
+
+        function playBeep() {
+            if (!document.getElementById('alarmCheck').checked) return;
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        }
+
+        async function executeFetchForBarcodes(barcodes, isManualDisplay = true) {
+            const resultBox = document.getElementById('resultBox');
+            const statusLog = document.getElementById('statusLog');
+            const hideBtn = document.getElementById('toggleResultHideBtn');
+            
+            const selectedStores = Array.from(document.querySelectorAll('input[name="store"]:checked'))
+                .map(cb => cb.value)
+                .filter((v, i, arr) => arr.indexOf(v) === i);
+            
+            if (selectedStores.length === 0) {
+                if (isManualDisplay) statusLog.innerText = "조회할 매장을 하나 이상 선택해주세요!";
+                return;
+            }
+
+            if (isManualDisplay) {
+                resultBox.innerHTML = '';
+                hideBtn.style.display = 'inline-block';
+                isResultHidden = false;
+                hideBtn.innerText = '검색 결과 숨기기';
+            }
+
+            let totalTasks = barcodes.length * selectedStores.length;
+            let completedTasks = 0;
+            let foundStockCount = 0;
+
+            statusLog.innerText = `재고 조회 중... (0 / ${totalTasks} 완료)`;
+
+            let allResults = [];
+            let fetchedItemsMap = {};
+            let barcodeInStockMap = {};
+            let barcodeDetailsMap = {};
+            let priceMap = {};
+            let imageMap = {};
+            const currentTimeStr = new Date().toLocaleTimeString();
+
+            barcodes.forEach(b => {
+                barcodeInStockMap[b] = 0;
+                barcodeDetailsMap[b] = [];
+            });
+
+            for (let barcode of barcodes) {
+                for (let storeId of selectedStores) {
+                    let storeName = STORE_MAP[storeId] || `매장(${storeId})`;
+                    const apiUrl = `https://api-eapp.emart.com/product/api/v1/info/1100/${barcode}?storeId=${storeId}`;
+
+                    try {
+                        const res = await fetch(apiUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/json, text/plain, */*',
+                                'Origin': 'https://eapp.emart.com',
+                                'Referer': 'https://eapp.emart.com/',
+                                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 EmartApp'
+                            }
+                        });
+                        const json = await res.json();
+                        const dataObj = json.data || json;
+                        
+                        let stockQty = 0;
+                        let priceVal = 0;
+
+                        if (dataObj.inventory !== undefined && dataObj.inventory !== null) {
+                            let inv = dataObj.inventory;
+                            if (typeof inv === 'number') {
+                                stockQty = inv;
+                            } else if (typeof inv === 'object') {
+                                stockQty = inv.inventory !== undefined ? inv.inventory : 
+                                          (inv.stockQty !== undefined ? inv.stockQty : 
+                                          (inv.irQty !== undefined ? inv.irQty : 
+                                          (inv.qty !== undefined ? inv.qty : 0)));
+                            }
+                        } else if (dataObj.stock !== undefined) {
+                            stockQty = Number(dataObj.stock);
+                        } else if (dataObj.qty !== undefined) {
+                            stockQty = Number(dataObj.qty);
+                        }
+
+                        if (dataObj.price && typeof dataObj.price === 'object') {
+                            priceVal = dataObj.price.sellPrice || dataObj.price.originalPrice || dataObj.price.discountedPrice || 0;
+                        }
+                        
+                        if (priceVal === 0) {
+                            priceVal = dataObj.salePrice || dataObj.price || dataObj.selPrc || dataObj.sellPrc || dataObj.amt || 0;
+                        }
+
+                        const priceStr = priceVal > 0 ? Number(priceVal).toLocaleString() + "원" : "";
+                        const itemName = dataObj.name || dataObj.skuName || `바코드: ${barcode}`;
+
+                        if (priceStr) priceMap[barcode] = priceStr;
+                        let img = dataObj.itemImgUrl || dataObj.repImgUrl || dataObj.imgUrl || dataObj.image || dataObj.imageUrl || '';
+                        if (!img && dataObj.images && dataObj.images.length > 0) {
+                            img = dataObj.images[0].url || dataObj.images[0] || '';
+                        }
+                        if (img && typeof img === 'string' && img.startsWith('http')) {
+                            imageMap[barcode] = img;
+                        }
+
+                        if (itemName && !itemName.includes('바코드:')) {
+                            fetchedItemsMap[barcode] = itemName;
+                        }
+
+                        if (stockQty !== 0) {
+                            foundStockCount++;
+                            if (stockQty > 0) {
+                                barcodeInStockMap[barcode] = (barcodeInStockMap[barcode] || 0) + 1;
+                            }
+                        }
+
+                        barcodeDetailsMap[barcode].push({
+                            storeName,
+                            stockQty
+                        });
+
+                        allResults.push({
+                            itemName,
+                            barcode,
+                            storeName,
+                            stockQty,
+                            priceStr
+                        });
+
+                    } catch (err) {
+                        console.error(err);
+                    }
+
+                    completedTasks++;
+                    statusLog.innerText = `조회 중... (${completedTasks} / ${totalTasks} 완료) | 전산 잡힘: ${foundStockCount}건`;
+                }
+            }
+
+            for (let [bCode, iName] of Object.entries(fetchedItemsMap)) {
+                if (isManualDisplay) saveHistoryItem(bCode, iName);
+                
+                let oldStockCount = activeMonitors[bCode] ? activeMonitors[bCode].stockCount : 0;
+                let newStockCount = barcodeInStockMap[bCode] || 0;
+
+                if (!isManualDisplay && oldStockCount === 0 && newStockCount > 0) {
+                    playBeep();
+                    showDesktopNotification("🚨 이마트 재고 발견!", `${iName} 상품 재고 발견!`);
+
+                    let inStockStores = (barcodeDetailsMap[bCode] || []).filter(d => d.stockQty > 0);
+                    let storeListText = inStockStores.map(d => `• **${d.storeName}**: \`${d.stockQty}개\``).join('\n');
+                    if (!storeListText || storeListText.trim() === '') storeListText = '재고 확인 점포 없음';
+
+                    let embedCard = {
+                        title: "🚨 [이마트] 실시간 재고 발견!",
+                        description: `**${iName}**`,
+                        color: 3066993,
+                        fields: [
+                            { name: "🏷️ 바코드", value: `\`${bCode}\``, inline: true },
+                            { name: "💰 판매가", value: `**${priceMap[bCode] || '가격 정보 없음'}**`, inline: true },
+                            { name: `📍 구매 가능 점포 (${inStockStores.length}곳)`, value: storeListText, inline: false }
+                        ],
+                        footer: { text: "이마트 오프라인 실시간 재고 조회기" },
+                        timestamp: new Date().toISOString()
+                    };
+
+                    if (imageMap[bCode]) {
+                        embedCard.thumbnail = { url: imageMap[bCode] };
+                    }
+
+                    sendDiscordWebhook(embedCard);
+                }
+
+                if (activeMonitors[bCode]) {
+                    activeMonitors[bCode].itemName = iName;
+                    activeMonitors[bCode].stockCount = newStockCount;
+                    activeMonitors[bCode].detailList = barcodeDetailsMap[bCode];
+                    activeMonitors[bCode].lastCheckedTime = currentTimeStr;
+                }
+            }
+            saveMonitors();
+            renderMonitorList();
+
+            if (isManualDisplay) {
+                allResults.sort((a, b) => {
+                    let aHasStock = a.stockQty !== 0 ? 1 : 0;
+                    let bHasStock = b.stockQty !== 0 ? 1 : 0;
+                    if (aHasStock !== bHasStock) {
+                        return bHasStock - aHasStock;
+                    }
+                    if (a.stockQty !== b.stockQty) {
+                        return b.stockQty - a.stockQty;
+                    }
+                    return a.storeName.localeCompare(b.storeName, 'ko');
+                });
+
+                for (let item of allResults) {
+                    const div = document.createElement('div');
+                    div.className = 'result-item';
+
+                    let badgeHtml = '';
+                    let storeClass = "highlight-store";
+
+                    if (item.stockQty > 0) {
+                        badgeHtml = `<div class="stock-badge in-stock">구매가능 ○ (${item.stockQty}개)</div>`;
+                        playBeep();
+                    } else if (item.stockQty < 0) {
+                        badgeHtml = `<div class="stock-badge check-stock">수량확인 △ (${item.stockQty}개)</div>`;
+                        playBeep();
+                    } else {
+                        badgeHtml = `<div class="stock-badge sold-out">품절 ✕ (0개)</div>`;
+                        storeClass = "normal-store";
+                    }
+
+                    div.innerHTML = `
+                        <div style="flex: 1; min-width: 180px;">
+                            <strong>${item.itemName}</strong><br>
+                            <small>바코드: ${item.barcode} | 점포: <span class="${storeClass}">${item.storeName}</span></small>
+                        </div>
+                        <div class="result-right-col">
+                            ${item.priceStr ? `<span class="price-text">${item.priceStr}</span>` : ''}
+                            ${badgeHtml}
+                        </div>
+                    `;
+                    resultBox.appendChild(div);
+                }
+            }
+
+            statusLog.innerText = `조회 완료: ${currentTimeStr} (전산 잡힘: ${foundStockCount}건)`;
+        }
+
+        function runSearch(isManual) {
+            const inputVal = document.getElementById('barcodeInput').value.trim();
+            if (!inputVal) {
+                document.getElementById('statusLog').innerText = "조회할 상품 바코드를 입력해주세요!";
+                return;
+            }
+            const barcodes = inputVal.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            executeFetchForBarcodes(barcodes, true);
+        }
+
+        function toggleMonitorState() {
+            const btn = document.getElementById('toggleMonitorBtn');
+            const intervalSec = parseInt(document.getElementById('intervalSec').value);
+
+            if (isMonitoringRunning) {
+                clearInterval(monitorInterval);
+                isMonitoringRunning = false;
+                btn.innerText = "모니터링 시작";
+                btn.classList.remove('stop');
+                btn.classList.add('primary');
+                document.getElementById('statusLog').innerText = "실시간 모니터링이 중지되었습니다.";
+            } else {
+                let monitorKeys = Object.keys(activeMonitors);
+                if (monitorKeys.length === 0) {
+                    document.getElementById('statusLog').innerText = "모니터링할 상품이 없습니다!";
+                    return;
+                }
+
+                isMonitoringRunning = true;
+                btn.innerText = "모니터링 중지";
+                btn.classList.remove('primary');
+                btn.classList.add('stop');
+                
+                executeFetchForBarcodes(monitorKeys, false);
+
+                const intervalMs = intervalSec || 300000;
+                monitorInterval = setInterval(() => {
+                    let currentKeys = Object.keys(activeMonitors);
+                    if (currentKeys.length > 0) {
+                        executeFetchForBarcodes(currentKeys, false);
+                    } else {
+                        toggleMonitorState();
+                    }
+                }, intervalMs);
+            }
+        }
+    </script>
+</body>
+</html>
