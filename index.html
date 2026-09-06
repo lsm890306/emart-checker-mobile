@@ -107,11 +107,16 @@
         .history-del-btn { font-size: 12px; color: #aaa; cursor: pointer; padding: 3px 6px; border-radius: 3px; border: 1px solid #ddd; background: #fff; white-space: nowrap; }
         .history-del-btn:hover { color: #d9534f; border-color: #d9534f; }
 
-        /* 참고 바코드 목록 박스 스타일 */
-        .ref-list { display: flex; flex-direction: column; gap: 8px; max-height: 250px; overflow-y: auto; }
-        .ref-item { background: white; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; transition: background 0.1s; }
-        .ref-item:hover { background: #f1f3f5; border-color: #0d6efd; }
-        .ref-name { font-weight: bold; font-size: 13px; color: #333; margin-bottom: 3px; }
+        /* 참고 바코드 목록 박스 스타일 (아코디언 구조 적용) */
+        .ref-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+        .ref-group { background: white; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+        .ref-group-header { padding: 10px 12px; font-weight: bold; font-size: 13px; color: #333; background: #fff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+        .ref-group-header:hover { background: #f1f3f5; }
+        .ref-sub-items { display: none; background: #fdfdfe; border-top: 1px solid #eee; padding: 6px; flex-direction: column; gap: 6px; }
+        .ref-group.open .ref-sub-items { display: flex; }
+        .ref-item { background: white; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 4px; cursor: pointer; transition: background 0.1s; }
+        .ref-item:hover { background: #edf2f7; border-color: #0d6efd; }
+        .ref-name { font-weight: bold; font-size: 12px; color: #333; margin-bottom: 2px; }
         .ref-barcode { font-size: 11px; color: #0d6efd; }
 
         .monitor-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
@@ -338,29 +343,48 @@
                         <span>📌 참고 바코드 목록</span>
                     </div>
                     <div class="ref-list">
-                        <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800286279365'; runSearch(true);" title="클릭 시 검색창에 입력">
-                            <div class="ref-name">포켓몬카드게임 닌자스피너</div>
-                            <div class="ref-barcode">8800286279365</div>
+                        <!-- 원피스 카드게임 그룹 -->
+                        <div class="ref-group" id="group-onepiece">
+                            <div class="ref-group-header" onclick="toggleRefGroup('group-onepiece')">
+                                <span>원피스카드게임</span>
+                                <span style="font-size: 11px; color: #888;">▼</span>
+                            </div>
+                            <div class="ref-sub-items">
+                                <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800332710620'; runSearch(true);" title="클릭 시 검색창에 입력">
+                                    <div class="ref-name">계승되는의지</div>
+                                    <div class="ref-barcode">8800332710620</div>
+                                </div>
+                                <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800332710644'; runSearch(true);" title="클릭 시 검색창에 입력">
+                                    <div class="ref-name">엑스트라 부스터</div>
+                                    <div class="ref-barcode">8800332710644</div>
+                                </div>
+                                <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800332710668'; runSearch(true);" title="클릭 시 검색창에 입력">
+                                    <div class="ref-name">창해의칠걸</div>
+                                    <div class="ref-barcode">8800332710668</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800286279693'; runSearch(true);" title="클릭 시 검색창에 입력">
-                            <div class="ref-name">포켓몬카드게임 스톰에메랄다</div>
-                            <div class="ref-barcode">8800286279693</div>
-                        </div>
-                        <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800332710644'; runSearch(true);" title="클릭 시 검색창에 입력">
-                            <div class="ref-name">원피스카드게임 엑스트라 부스터</div>
-                            <div class="ref-barcode">8800332710644</div>
-                        </div>
-                        <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800332710620'; runSearch(true);" title="클릭 시 검색창에 입력">
-                            <div class="ref-name">원피스카드게임 계승되는의지</div>
-                            <div class="ref-barcode">8800332710620</div>
-                        </div>
-                        <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800332710668'; runSearch(true);" title="클릭 시 검색창에 입력">
-                            <div class="ref-name">원피스카드게임 창해의칠걸</div>
-                            <div class="ref-barcode">8800332710668</div>
-                        </div>
-                        <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800286278528'; runSearch(true);" title="클릭 시 검색창에 입력">
-                            <div class="ref-name">포켓몬카드게임 인페르노X</div>
-                            <div class="ref-barcode">8800286278528</div>
+
+                        <!-- 포켓몬 카드게임 그룹 -->
+                        <div class="ref-group" id="group-pokemon">
+                            <div class="ref-group-header" onclick="toggleRefGroup('group-pokemon')">
+                                <span>포켓몬카드게임</span>
+                                <span style="font-size: 11px; color: #888;">▼</span>
+                            </div>
+                            <div class="ref-sub-items">
+                                <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800286278528'; runSearch(true);" title="클릭 시 검색창에 입력">
+                                    <div class="ref-name">인페르노X</div>
+                                    <div class="ref-barcode">8800286278528</div>
+                                </div>
+                                <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800286279365'; runSearch(true);" title="클릭 시 검색창에 입력">
+                                    <div class="ref-name">닌자스피너</div>
+                                    <div class="ref-barcode">8800286279365</div>
+                                </div>
+                                <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800286279693'; runSearch(true);" title="클릭 시 검색창에 입력">
+                                    <div class="ref-name">스톰에메랄다</div>
+                                    <div class="ref-barcode">8800286279693</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -407,6 +431,13 @@
             loadHistory();
             renderMonitorList();
         });
+
+        function toggleRefGroup(groupId) {
+            const groupEl = document.getElementById(groupId);
+            if (groupEl) {
+                groupEl.classList.toggle('open');
+            }
+        }
 
         function openConfigModal() {
             document.getElementById('webhookInput').value = localStorage.getItem('emart_discord_webhook') || '';
@@ -912,9 +943,9 @@
                                 stockQty = inv;
                             } else if (typeof inv === 'object') {
                                 stockQty = inv.inventory !== undefined ? inv.inventory : 
-                                          (inv.stockQty !== undefined ? inv.stockQty : 
-                                          (inv.irQty !== undefined ? inv.irQty : 
-                                          (inv.qty !== undefined ? inv.qty : 0)));
+                                        (inv.stockQty !== undefined ? inv.stockQty : 
+                                        (inv.irQty !== undefined ? inv.irQty : 
+                                        (inv.qty !== undefined ? inv.qty : 0)));
                             }
                         } else if (dataObj.stock !== undefined) {
                             stockQty = Number(dataObj.stock);
