@@ -107,8 +107,8 @@
         .history-del-btn { font-size: 12px; color: #aaa; cursor: pointer; padding: 3px 6px; border-radius: 3px; border: 1px solid #ddd; background: #fff; white-space: nowrap; }
         .history-del-btn:hover { color: #d9534f; border-color: #d9534f; }
 
-        /* 참고 바코드 목록 박스 스타일 (아코디언 구조 적용) */
-        .ref-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+        /* 참고 바코드 목록 박스 스타일 (충분한 높이와 스크롤 확보) */
+        .ref-list { display: flex; flex-direction: column; gap: 8px; max-height: 500px; overflow-y: auto; padding-right: 4px; }
         .ref-group { background: white; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
         .ref-group-header { padding: 10px 12px; font-weight: bold; font-size: 13px; color: #333; background: #fff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
         .ref-group-header:hover { background: #f1f3f5; }
@@ -145,7 +145,8 @@
             .main-layout { flex-direction: row; align-items: flex-start; }
             .center-sidebar { width: 330px; }
             .right-sidebar { width: 320px; }
-            .history-list, .ref-list { max-height: 320px; }
+            .history-list { max-height: 320px; }
+            .ref-list { max-height: 520px; }
             .monitor-list { max-height: 720px; }
         }
     </style>
@@ -343,7 +344,6 @@
                         <span>📌 참고 바코드 목록</span>
                     </div>
                     <div class="ref-list">
-                        <!-- 원피스 카드게임 그룹 -->
                         <div class="ref-group" id="group-onepiece">
                             <div class="ref-group-header" onclick="toggleRefGroup('group-onepiece')">
                                 <span>원피스카드게임</span>
@@ -365,7 +365,6 @@
                             </div>
                         </div>
 
-                        <!-- 포켓몬 카드게임 그룹 -->
                         <div class="ref-group" id="group-pokemon">
                             <div class="ref-group-header" onclick="toggleRefGroup('group-pokemon')">
                                 <span>포켓몬카드게임</span>
