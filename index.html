@@ -349,6 +349,10 @@
                             <div class="ref-name">원피스카드게임 창해의칠걸</div>
                             <div class="ref-barcode">8800332710668</div>
                         </div>
+                        <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800286278528'; runSearch(true);" title="클릭 시 검색창에 입력">
+                            <div class="ref-name">포켓몬카드게임 인페르노X</div>
+                            <div class="ref-barcode">8800286278528</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -686,6 +690,7 @@
                         itemName: `바코드: ${barcode}`,
                         stockCount: 0,
                         detailList: [],
+                        storeQuantities: {}, // 매장별 이전 수량 저장용 객체 추가
                         lastCheckedTime: null
                     };
                 }
@@ -939,6 +944,7 @@
                         }
 
                         barcodeDetailsMap[barcode].push({
+                            storeId,
                             storeName,
                             stockQty
                         });
@@ -963,42 +969,63 @@
             for (let [bCode, iName] of Object.entries(fetchedItemsMap)) {
                 if (isManualDisplay) saveHistoryItem(bCode, iName);
                 
-                let oldStockCount = activeMonitors[bCode] ? activeMonitors[bCode].stockCount : 0;
-                let newStockCount = barcodeInStockMap[bCode] || 0;
+                let monitorObj = activeMonitors[bCode];
+                if (monitorObj) {
+                    if (!monitorObj.storeQuantities) {
+                        monitorObj.storeQuantities = {};
+                    }
+                    
+                    let currentDetails = barcodeDetailsMap[bCode] || [];
+                    let hasChanged = false;
+                    let changeReportText = [];
 
-                if (!isManualDisplay && oldStockCount === 0 && newStockCount > 0) {
-                    playBeep();
-                    showDesktopNotification("🚨 이마트 재고 발견!", `${iName} 상품 재고 발견!`);
+                    // 첫 실행이 아닐 때만 수량 변화 감지 (증가/감소 모두 체크)
+                    let isFirstCheck = Object.keys(monitorObj.storeQuantities).length === 0;
 
-                    let inStockStores = (barcodeDetailsMap[bCode] || []).filter(d => d.stockQty > 0);
-                    let storeListText = inStockStores.map(d => `• **${d.storeName}**: \`${d.stockQty}개\``).join('\n');
-                    if (!storeListText || storeListText.trim() === '') storeListText = '재고 확인 점포 없음';
+                    currentDetails.forEach(d => {
+                        let prevQty = monitorObj.storeQuantities[d.storeId];
+                        let currQty = d.stockQty;
 
-                    let embedCard = {
-                        title: "🚨 [이마트] 실시간 재고 발견!",
-                        description: `**${iName}**`,
-                        color: 3066993,
-                        fields: [
-                            { name: "🏷️ 바코드", value: `\`${bCode}\``, inline: true },
-                            { name: "💰 판매가", value: `**${priceMap[bCode] || '가격 정보 없음'}**`, inline: true },
-                            { name: `📍 구매 가능 점포 (${inStockStores.length}곳)`, value: storeListText, inline: false }
-                        ],
-                        footer: { text: "이마트 오프라인 실시간 재고 조회기" },
-                        timestamp: new Date().toISOString()
-                    };
+                        if (!isFirstCheck && prevQty !== undefined && prevQty !== currQty) {
+                            hasChanged = true;
+                            let diff = currQty - prevQty;
+                            let diffStr = diff > 0 ? `(+${diff})` : `(${diff})`;
+                            changeReportText.push(`• **${d.storeName}**: \`${prevQty}개\` ➔ \`${currQty}개\` ${diffStr}`);
+                        }
+                        // 현재 수량 갱신 기록
+                        monitorObj.storeQuantities[d.storeId] = currQty;
+                    });
 
-                    if (imageMap[bCode]) {
-                        embedCard.thumbnail = { url: imageMap[bCode] };
+                    // 자동 모니터링 중 수량 변동이 발생했을 때 웹훅 전송
+                    if (!isManualDisplay && hasChanged && changeReportText.length > 0) {
+                        playBeep();
+                        showDesktopNotification("📦 이마트 재고 변동 감지!", `${iName} 수량이 변경되었습니다!`);
+
+                        let embedCard = {
+                            title: "📦 [이마트] 실시간 재고 수량 변동!",
+                            description: `**${iName}**`,
+                            color: 16776960, // 노란색(변동) 계열
+                            fields: [
+                                { name: "🏷️ 바코드", value: `\`${bCode}\``, inline: true },
+                                { name: "💰 판매가", value: `**${priceMap[bCode] || '가격 정보 없음'}**`, inline: true },
+                                { name: "🔄 변동 내역", value: changeReportText.join('\n'), inline: false }
+                            ],
+                            footer: { text: "이마트 오프라인 실시간 재고 조회기" },
+                            timestamp: new Date().toISOString()
+                        };
+
+                        if (imageMap[bCode]) {
+                            embedCard.thumbnail = { url: imageMap[bCode] };
+                        }
+
+                        sendDiscordWebhook(embedCard);
                     }
 
-                    sendDiscordWebhook(embedCard);
-                }
-
-                if (activeMonitors[bCode]) {
-                    activeMonitors[bCode].itemName = iName;
-                    activeMonitors[bCode].stockCount = newStockCount;
-                    activeMonitors[bCode].detailList = barcodeDetailsMap[bCode];
-                    activeMonitors[bCode].lastCheckedTime = currentTimeStr;
+                    let newStockCount = barcodeInStockMap[bCode] || 0;
+                    monitorObj.itemName = iName;
+                    monitorObj.stockCount = newStockCount;
+                    monitorObj.detailList = currentDetails;
+                    monitorObj.lastCheckedTime = currentTimeStr;
                 }
             }
             saveMonitors();
