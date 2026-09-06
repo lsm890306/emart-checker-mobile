@@ -208,6 +208,7 @@
                         <label><span class="store-name">목동점</span><span class="store-controls"><input type="checkbox" name="store" value="1104" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1104', '목동점')">★</span></span></label>
                         <label><span class="store-name">묵동점</span><span class="store-controls"><input type="checkbox" name="store" value="1117" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1117', '묵동점')">★</span></span></label>
                         <label><span class="store-name">미아점</span><span class="store-controls"><input type="checkbox" name="store" value="1093" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1093', '미아점')">★</span></span></label>
+                        <label><span class="store-name">월계점</span><span class="store-controls"><input type="checkbox" name="store" value="1059" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1059', '월계점')">★</span></span></label>
                         <label><span class="store-name">수색점</span><span class="store-controls"><input type="checkbox" name="store" value="1108" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1108', '수색점')">★</span></span></label>
                         <label><span class="store-name">수서점</span><span class="store-controls"><input type="checkbox" name="store" value="1029" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1029', '수서점')">★</span></span></label>
                         <label><span class="store-name">신도림점</span><span class="store-controls"><input type="checkbox" name="store" value="1083" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1083', '신도림점')">★</span></span></label>
@@ -363,6 +364,7 @@
         const STORE_MAP = {
             "1118": "(서울) 가든5점", "1012": "(서울) 구로점", "1123": "(서울) 마포점",
             "1041": "(서울) 명일점", "1104": "(서울) 목동점", "1117": "(서울) 묵동점", "1093": "(서울) 미아점",
+            "1059": "(서울) 월계점",
             "1108": "(서울) 수색점", "1029": "(서울) 수서점", "1083": "(서울) 신도림점", "1013": "(서울) 신월점",
             "1139": "(서울) 신촌점", "1062": "(서울) 양재점", "1087": "(서울) 여의도점", "1095": "(서울) 역삼점",
             "1106": "(서울) 영등포점", "1090": "(서울) 왕십리점", "1060": "(서울) 용산점", "1033": "(서울) 은평점",
@@ -690,7 +692,7 @@
                         itemName: `바코드: ${barcode}`,
                         stockCount: 0,
                         detailList: [],
-                        storeQuantities: {}, // 매장별 이전 수량 영구 비교를 위해 추가
+                        storeQuantities: {}, 
                         lastCheckedTime: null
                     };
                 }
@@ -979,25 +981,21 @@
                     let hasChanged = false;
                     let changeReportText = [];
 
-                    // 첫 실행(데이터가 아예 없을 때)인지 확인
                     let isFirstCheck = Object.keys(monitorObj.storeQuantities).length === 0;
 
                     currentDetails.forEach(d => {
                         let prevQty = monitorObj.storeQuantities[d.storeId];
                         let currQty = d.stockQty;
 
-                        // 기존에 기록이 있었는데 수량이 달라졌을 때 (증가, 감소, 품절 모두 포함)
                         if (!isFirstCheck && prevQty !== undefined && prevQty !== currQty) {
                             hasChanged = true;
                             let diff = currQty - prevQty;
                             let diffStr = diff > 0 ? `(+${diff})` : `(${diff})`;
                             changeReportText.push(`• **${d.storeName}**: \`${prevQty}개\` ➔ \`${currQty}개\` ${diffStr}`);
                         }
-                        // 현재 수량으로 즉시 갱신
                         monitorObj.storeQuantities[d.storeId] = currQty;
                     });
 
-                    // 자동 모니터링 중 수량 변동이 발생했을 때 웹훅 전송 (최초 실행 제외)
                     if (!isManualDisplay && !isFirstCheck && hasChanged && changeReportText.length > 0) {
                         playBeep();
                         showDesktopNotification("📦 이마트 재고 변동 감지!", `${iName} 수량이 변경되었습니다!`);
@@ -1005,7 +1003,7 @@
                         let embedCard = {
                             title: "📦 [이마트] 실시간 재고 수량 변동!",
                             description: `**${iName}**`,
-                            color: 16776960, // 노란색(변동) 계열
+                            color: 16776960,
                             fields: [
                                 { name: "🏷️ 바코드", value: `\`${bCode}\``, inline: true },
                                 { name: "💰 판매가", value: `**${priceMap[bCode] || '가격 정보 없음'}**`, inline: true },
