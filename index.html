@@ -201,6 +201,7 @@
                         <button type="button" class="region-tab" onclick="switchTab('seoul', this)">서울</button>
                         <button type="button" class="region-tab" onclick="switchTab('gyeonggi', this)">경기</button>
                         <button type="button" class="region-tab" onclick="switchTab('incheon', this)">인천</button>
+                        <button type="button" class="region-tab" onclick="switchTab('busan', this)">부산</button>
                         <button type="button" class="region-tab" onclick="switchTab('gangwon', this)">강원</button>
                     </div>
 
@@ -285,6 +286,14 @@
                         <label><span class="store-name">계양점</span><span class="store-controls"><input type="checkbox" name="store" value="1098" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1098', '계양점')">★</span></span></label>
                         <label><span class="store-name">동인천점</span><span class="store-controls"><input type="checkbox" name="store" value="1023" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1023', '동인천점')">★</span></span></label>
                         <label><span class="store-name">연수점</span><span class="store-controls"><input type="checkbox" name="store" value="1042" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1042', '연수점')">★</span></span></label>
+                    </div>
+
+                    <div id="tab-busan" class="region-content">
+                        <label><span class="store-name">문현점</span><span class="store-controls"><input type="checkbox" name="store" value="1144" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1144', '문현점')">★</span></span></label>
+                        <label><span class="store-name">사상점</span><span class="store-controls"><input type="checkbox" name="store" value="1036" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1036', '사상점')">★</span></span></label>
+                        <label><span class="store-name">서부산점</span><span class="store-controls"><input type="checkbox" name="store" value="1136" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1136', '서부산점')">★</span></span></label>
+                        <label><span class="store-name">연제점</span><span class="store-controls"><input type="checkbox" name="store" value="1064" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1064', '연제점')">★</span></span></label>
+                        <label><span class="store-name">해운대점</span><span class="store-controls"><input type="checkbox" name="store" value="1021" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1021', '해운대점')">★</span></span></label>
                     </div>
 
                     <div id="tab-gangwon" class="region-content">
@@ -383,6 +392,10 @@
                                     <div class="ref-name">스톰에메랄다</div>
                                     <div class="ref-barcode">8800286279693</div>
                                 </div>
+                                <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800286279990'; runSearch(true);" title="클릭 시 검색창에 입력">
+                                    <div class="ref-name">30주년 기념팩</div>
+                                    <div class="ref-barcode">8800286279990</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -395,12 +408,12 @@
         const STORE_MAP = {
             "1118": "(서울) 가든5점", "1012": "(서울) 구로점", "1123": "(서울) 마포점",
             "1041": "(서울) 명일점", "1104": "(서울) 목동점", "1117": "(서울) 묵동점", "1093": "(서울) 미아점",
-            "1059": "(서울) 월계점",
-            "1108": "(서울) 수색점", "1029": "(서울) 수서점", "1083": "(서울) 신도림점", "1013": "(서울) 신월점",
-            "1139": "(서울) 신촌점", "1062": "(서울) 양재점", "1087": "(서울) 여의도점", "1095": "(서울) 역삼점",
-            "1106": "(서울) 영등포점", "1090": "(서울) 왕십리점", "1060": "(서울) 용산점", "1033": "(서울) 은평점",
-            "1080": "(서울) 자양점", "1001": "(서울) 창동점", "1016": "(서울) 천호점", "1089": "(서울) 청계천점",
-            "1125": "(서울) 하월곡점",
+            "1059": "(서울) 월계점", "1108": "(서울) 수색점", "1029": "(서울) 수서점", "1083": "(서울) 신도림점",
+            "1013": "(서울) 신월점", "1139": "(서울) 신촌점", "1062": "(서울) 양재점", "1087": "(서울) 여의도점",
+            "1095": "(서울) 역삼점", "1106": "(서울) 영등포점", "1090": "(서울) 왕십리점", "1060": "(서울) 용산점",
+            "1033": "(서울) 은평점", "1080": "(서울) 자양점", "1001": "(서울) 창동점", "1016": "(서울) 천호점",
+            "1089": "(서울) 청계천점", "1125": "(서울) 하월곡점",
+            
             "1085": "(경기) 스타필드마켓 동탄점", "1133": "(경기) 스타필드마켓 일산점", "1068": "(경기) 스타필드마켓 죽전점",
             "1107": "(경기) 경기광주점", "1135": "(경기) 과천점", "1134": "(경기) 광교점", "1112": "(경기) 광명소하점",
             "1131": "(경기) 김포한강점", "1069": "(경기) 남양주점", "1086": "(경기) 다산점", "1075": "(경기) 동백점",
@@ -412,7 +425,11 @@
             "1097": "(경기) 중동점", "1115": "(경기) 진접점", "1119": "(경기) 파주운정점", "1057": "(경기) 파주점",
             "1099": "(경기) 평촌점", "1032": "(경기) 평택점", "1111": "(경기) 포천점", "1130": "(경기) 풍산점",
             "1088": "(경기) 하남점", "1126": "(경기) 화성봉담점", "1096": "(경기) 화정점", "1105": "(경기) 흥덕점",
+            
             "1077": "(인천) 검단점", "1098": "(인천) 계양점", "1023": "(인천) 동인천점", "1042": "(인천) 연수점",
+            
+            "1144": "(부산) 문현점", "1036": "(부산) 사상점", "1136": "(부산) 서부산점", "1064": "(부산) 연제점", "1021": "(부산) 해운대점",
+            
             "1043": "(강원) 강릉점", "1052": "(강원) 동해점", "1049": "(강원) 속초점", "1011": "(강원) 원주점",
             "1066": "(강원) 춘천점", "1079": "(강원) 태백점"
         };
