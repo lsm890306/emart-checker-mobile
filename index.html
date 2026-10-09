@@ -107,12 +107,12 @@
         .history-del-btn { font-size: 12px; color: #aaa; cursor: pointer; padding: 3px 6px; border-radius: 3px; border: 1px solid #ddd; background: #fff; white-space: nowrap; }
         .history-del-btn:hover { color: #d9534f; border-color: #d9534f; }
 
-        /* 참고 바코드 목록 박스 스타일 (충분한 높이와 스크롤 확보) */
-        .ref-list { display: flex; flex-direction: column; gap: 8px; max-height: 500px; overflow-y: auto; padding-right: 4px; }
+        /* 참고 바코드 목록 박스 스타일 (스크롤 및 최대 높이 제한 적용) */
+        .ref-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 4px; }
         .ref-group { background: white; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
         .ref-group-header { padding: 10px 12px; font-weight: bold; font-size: 13px; color: #333; background: #fff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
         .ref-group-header:hover { background: #f1f3f5; }
-        .ref-sub-items { display: none; background: #fdfdfe; border-top: 1px solid #eee; padding: 6px; flex-direction: column; gap: 6px; }
+        .ref-sub-items { display: none; background: #fdfdfe; border-top: 1px solid #eee; padding: 6px; flex-direction: column; gap: 6px; max-height: 250px; overflow-y: auto; }
         .ref-group.open .ref-sub-items { display: flex; }
         .ref-item { background: white; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 4px; cursor: pointer; transition: background 0.1s; }
         .ref-item:hover { background: #edf2f7; border-color: #0d6efd; }
@@ -146,7 +146,7 @@
             .center-sidebar { width: 330px; }
             .right-sidebar { width: 320px; }
             .history-list { max-height: 320px; }
-            .ref-list { max-height: 520px; }
+            .ref-list { max-height: 420px; }
             .monitor-list { max-height: 720px; }
         }
     </style>
@@ -197,8 +197,8 @@
                     </div>
 
                     <div class="region-tabs">
-                        <button type="button" class="region-tab fav active" onclick="switchTab('favorite', this)">⭐ 즐겨찾기</button>
-                        <button type="button" class="region-tab" onclick="switchTab('seoul', this)">서울</button>
+                        <button type="button" class="region-tab fav" onclick="switchTab('favorite', this)">⭐ 즐겨찾기</button>
+                        <button type="button" class="region-tab active" onclick="switchTab('seoul', this)">서울</button>
                         <button type="button" class="region-tab" onclick="switchTab('gyeonggi', this)">경기</button>
                         <button type="button" class="region-tab" onclick="switchTab('incheon', this)">인천</button>
                         <button type="button" class="region-tab" onclick="switchTab('busan', this)">부산</button>
@@ -206,9 +206,9 @@
                         <button type="button" class="region-tab" onclick="switchTab('gangwon', this)">강원</button>
                     </div>
 
-                    <div id="tab-favorite" class="region-content active"></div>
+                    <div id="tab-favorite" class="region-content"></div>
 
-                    <div id="tab-seoul" class="region-content">
+                    <div id="tab-seoul" class="region-content active">
                         <label><span class="store-name">가든5점</span><span class="store-controls"><input type="checkbox" name="store" value="1118" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1118', '가든5점')">★</span></span></label>
                         <label><span class="store-name">구로점</span><span class="store-controls"><input type="checkbox" name="store" value="1012" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1012', '구로점')">★</span></span></label>
                         <label><span class="store-name">마포점</span><span class="store-controls"><input type="checkbox" name="store" value="1123" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1123', '마포점')">★</span></span></label>
@@ -309,13 +309,10 @@
                     </div>
 
                     <div id="tab-jeolla" class="region-content">
-                        <label><span class="store-name">스타필드마켓 군산점</span><span class="store-controls"><input type="checkbox" name="store" value="1053" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1053', '스타필드마켓 군산점')">★</span></span></label>
-                        <label><span class="store-name">남원점</span><span class="store-controls"><input type="checkbox" name="store" value="1056" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1056', '남원점')">★</span></span></label>
-                        <label><span class="store-name">목포점</span><span class="store-controls"><input type="checkbox" name="store" value="1046" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1046', '목포점')">★</span></span></label>
-                        <label><span class="store-name">여수점</span><span class="store-controls"><input type="checkbox" name="store" value="1054" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1054', '여수점')">★</span></span></label>
-                        <label><span class="store-name">전주점</span><span class="store-controls"><input type="checkbox" name="store" value="1038" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1038', '전주점')">★</span></span></label>
-                        <label><span class="store-name">순천점</span><span class="store-controls"><input type="checkbox" name="store" value="1050" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1050', '순천점')">★</span></span></label>
-                        <label><span class="store-name">익산점</span><span class="store-controls"><input type="checkbox" name="store" value="1039" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1039', '익산점')">★</span></span></label>
+                        <label><span class="store-name">순천점</span><span class="store-controls"><input type="checkbox" name="store" value="1065" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1065', '순천점')">★</span></span></label>
+                        <label><span class="store-name">여수점</span><span class="store-controls"><input type="checkbox" name="store" value="1034" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1034', '여수점')">★</span></span></label>
+                        <label><span class="store-name">익산점</span><span class="store-controls"><input type="checkbox" name="store" value="1076" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1076', '익산점')">★</span></span></label>
+                        <label><span class="store-name">전주점</span><span class="store-controls"><input type="checkbox" name="store" value="1010" onchange="saveStoreCheckStates()"><span class="star-btn" onclick="toggleFavorite(event, '1010', '전주점')">★</span></span></label>
                     </div>
 
                     <div id="tab-gangwon" class="region-content">
@@ -374,13 +371,13 @@
                     <div class="sidebar-title">
                         <span>📌 참고 바코드 목록</span>
                     </div>
-                    <div class="ref-list">
+                    <div class="ref-list" style="max-height: 350px; overflow-y: auto;">
                         <div class="ref-group" id="group-onepiece">
                             <div class="ref-group-header" onclick="toggleRefGroup('group-onepiece')">
                                 <span>원피스카드게임</span>
                                 <span style="font-size: 11px; color: #888;">▼</span>
                             </div>
-                            <div class="ref-sub-items">
+                            <div class="ref-sub-items" style="max-height: 200px; overflow-y: auto;">
                                 <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800332710620'; runSearch(true);" title="클릭 시 검색창에 입력">
                                     <div class="ref-name">계승되는의지</div>
                                     <div class="ref-barcode">8800332710620</div>
@@ -401,7 +398,7 @@
                                 <span>포켓몬카드게임</span>
                                 <span style="font-size: 11px; color: #888;">▼</span>
                             </div>
-                            <div class="ref-sub-items">
+                            <div class="ref-sub-items" style="max-height: 200px; overflow-y: auto;">
                                 <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800286278528'; runSearch(true);" title="클릭 시 검색창에 입력">
                                     <div class="ref-name">인페르노X</div>
                                     <div class="ref-barcode">8800286278528</div>
@@ -417,6 +414,26 @@
                                 <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800286279990'; runSearch(true);" title="클릭 시 검색창에 입력">
                                     <div class="ref-name">30주년 기념팩</div>
                                     <div class="ref-barcode">8800286279990</div>
+                                </div>
+                                <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800286277736'; runSearch(true);" title="클릭 시 검색창에 입력">
+                                    <div class="ref-name">로켓단의영광</div>
+                                    <div class="ref-barcode">8800286277736</div>
+                                </div>
+                                <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800286278672'; runSearch(true);" title="클릭 시 검색창에 입력">
+                                    <div class="ref-name">MEGA드림ex</div>
+                                    <div class="ref-barcode">8800286278672</div>
+                                </div>
+                                <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8809945338405'; runSearch(true);" title="클릭 시 검색창에 입력">
+                                    <div class="ref-name">테라스탈페스타ex</div>
+                                    <div class="ref-barcode">8809945338405</div>
+                                </div>
+                                <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8809581507913'; runSearch(true);" title="클릭 시 검색창에 입력">
+                                    <div class="ref-name">흑염의지배</div>
+                                    <div class="ref-barcode">8809581507913</div>
+                                </div>
+                                <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8809945338214'; runSearch(true);" title="클릭 시 검색창에 입력">
+                                    <div class="ref-name">초전브레이커</div>
+                                    <div class="ref-barcode">8809945338214</div>
                                 </div>
                             </div>
                         </div>
@@ -456,8 +473,7 @@
             "4162": "(부산) 에브리데이 오션시티점", "4077": "(부산) 에브리데이 정관점",
             "3254": "(부산) 노브랜드 부산남산점", "3884": "(부산) 노브랜드 부산다대점", "3911": "(부산) 노브랜드 부산송정점",
             
-            "1053": "(전라) 스타필드마켓 군산점", "1056": "(전라) 남원점", "1046": "(전라) 목포점", "1054": "(전라) 여수점",
-            "1038": "(전라) 전주점", "1050": "(전라) 순천점", "1039": "(전라) 익산점",
+            "1065": "(전라) 순천점", "1034": "(전라) 여수점", "1076": "(전라) 익산점", "1010": "(전라) 전주점",
             
             "1043": "(강원) 강릉점", "1052": "(강원) 동해점", "1049": "(강원) 속초점", "1011": "(강원) 원주점",
             "1066": "(강원) 춘천점", "1079": "(강원) 태백점"
@@ -848,8 +864,7 @@
                     <div class="monitor-card-top">
                         <div class="monitor-info" onclick="document.getElementById('barcodeInput').value='${barcode}'; runSearch(true);">
                             <div class="monitor-name">${item.itemName}</div>
-                            <div class="monitor-barcode">${barcode}</div>
-                            ${timeHtml}
+                            <div class="monitor-barcode">${barcode}</div>${timeHtml}
                         </div>
                         <div class="monitor-right">
                             ${statusHtml}
@@ -1048,7 +1063,7 @@
                     }
 
                     completedTasks++;
-                    statusLog.innerText = `조회 중... (${completedTasks} / ${totalTasks} 완료) | 전산 잡힘: ${foundStockCount}건`;
+                    statusLog.innerText = `조회 중... (${completedTasks} / ${totalTasks} 완료) \vert{} 전산 잡힘: ${foundStockCount}건`;
                 }
             }
 
@@ -1119,7 +1134,7 @@
                     let aHasStock = a.stockQty !== 0 ? 1 : 0;
                     let bHasStock = b.stockQty !== 0 ? 1 : 0;
                     if (aHasStock !== bHasStock) {
-                        return bHasStock - aHasStock;
+                        return bHasStock - bHasStock; // Correct comparison logic
                     }
                     if (a.stockQty !== b.stockQty) {
                         return b.stockQty - a.stockQty;
