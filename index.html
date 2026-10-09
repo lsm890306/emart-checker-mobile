@@ -484,7 +484,6 @@
         let isResultHidden = false;
 
         window.addEventListener('DOMContentLoaded', () => {
-            loadDiscordWebhook();
             loadStoreCheckStates();
             loadFavorites();
             loadMonitors();
@@ -500,7 +499,6 @@
         }
 
         function openConfigModal() {
-            // 저장된 웹훅들을 불러와 개행문자(\n)로 결합하여 텍스트상자에 표시
             let webhooks = loadDiscordWebhooks();
             document.getElementById('webhookInput').value = webhooks.join('\n');
             document.getElementById('configModal').style.display = 'flex';
@@ -523,7 +521,6 @@
                     if (Array.isArray(parsed)) return parsed;
                 } catch(e) {}
             }
-            // 하위 호환성 (기존 단일 웹훅 저장소 데이터 가져오기)
             let oldSingle = localStorage.getItem('emart_discord_webhook');
             if (oldSingle && oldSingle.trim() !== "") {
                 return [oldSingle.trim()];
@@ -1108,27 +1105,38 @@
                         let prevQty = monitorObj.storeQuantities[d.storeId];
                         let currQty = d.stockQty;
 
-                        if (!isFirstCheck && prevQty !== undefined && prevQty !== currQty) {
-                            hasChanged = true;
-                            let diff = currQty - prevQty;
-                            let diffStr = diff > 0 ? `(+${diff})` : `(${diff})`;
-                            changeReportText.push(`• **${d.storeName}**: \`${prevQty}개\` ➔ \`${currQty}개\` ${diffStr}`);
+                        if (isFirstCheck) {
+                            // 최초 모니터링 시작 시, 재고가 있는 곳이 있다면 첫 웹훅에 포함
+                            if (currQty > 0) {
+                                hasChanged = true;
+                                changeReportText.push(`• **${d.storeName}**: \`${currQty}개\` (최초 발견)`);
+                            }
+                        } else {
+                            if (prevQty !== undefined && prevQty !== currQty) {
+                                hasChanged = true;
+                                let diff = currQty - prevQty;
+                                let diffStr = diff > 0 ? `(+${diff})` : `(${diff})`;
+                                changeReportText.push(`• **${d.storeName}**: \`${prevQty}개\` ➔ \`${currQty}개\` ${diffStr}`);
+                            }
                         }
                         monitorObj.storeQuantities[d.storeId] = currQty;
                     });
 
-                    if (!isManualDisplay && !isFirstCheck && hasChanged && changeReportText.length > 0) {
+                    if (!isManualDisplay && hasChanged && changeReportText.length > 0) {
                         playBeep();
-                        showDesktopNotification("📦 이마트 재고 변동 감지!", `${iName} 수량이 변경되었습니다!`);
+                        let notificationTitle = isFirstCheck ? "📦 [이마트] 모니터링 시작 - 현재 재고 발견!" : "📦 [이마트] 실시간 재고 수량 변동!";
+                        let descriptionText = isFirstCheck ? `**${iName}** (최초 감지된 재고 현황)` : `**${iName}** 수량이 변경되었습니다!`;
+                        
+                        showDesktopNotification(notificationTitle, descriptionText);
 
                         let embedCard = {
-                            title: "📦 [이마트] 실시간 재고 수량 변동!",
-                            description: `**${iName}**`,
-                            color: 16776960,
+                            title: notificationTitle,
+                            description: descriptionText,
+                            color: isFirstCheck ? 3066993 : 16776960,
                             fields: [
                                 { name: "🏷️ 바코드", value: `\`${bCode}\``, inline: true },
                                 { name: "💰 판매가", value: `**${priceMap[bCode] || '가격 정보 없음'}**`, inline: true },
-                                { name: "🔄 변동 내역", value: changeReportText.join('\n'), inline: false }
+                                { name: isFirstCheck ? "📍 재고 현황" : "🔄 변동 내역", value: changeReportText.join('\n'), inline: false }
                             ],
                             footer: { text: "이마트 오프라인 실시간 재고 조회기" },
                             timestamp: new Date().toISOString()
