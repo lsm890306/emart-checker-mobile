@@ -17,9 +17,9 @@
 
         /* 설정 모달 팝업 스타일 */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
-        .modal-box { background: white; width: 100%; max-width: 450px; padding: 25px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        .modal-box { background: white; width: 100%; max-width: 480px; padding: 25px; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
         .modal-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; color: #222; display: flex; justify-content: space-between; align-items: center; }
-        .modal-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; }
+        .modal-textarea { width: 100%; height: 120px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; resize: vertical; font-family: monospace; font-size: 12px; }
         .modal-btns { display: flex; justify-content: flex-end; gap: 8px; }
 
         /* 메인 레이아웃 (반응형 적용: 기본 세로 배치, PC에서는 가로 배치) */
@@ -107,8 +107,8 @@
         .history-del-btn { font-size: 12px; color: #aaa; cursor: pointer; padding: 3px 6px; border-radius: 3px; border: 1px solid #ddd; background: #fff; white-space: nowrap; }
         .history-del-btn:hover { color: #d9534f; border-color: #d9534f; }
 
-        /* 참고 바코드 목록 박스 스타일 (스크롤 및 최대 높이 제한 적용) */
-        .ref-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; padding-right: 4px; }
+        /* 참고 바코드 목록 박스 스타일 */
+        .ref-list { display: flex; flex-direction: column; gap: 8px; max-height: 500px; overflow-y: auto; padding-right: 4px; }
         .ref-group { background: white; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
         .ref-group-header { padding: 10px 12px; font-weight: bold; font-size: 13px; color: #333; background: #fff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
         .ref-group-header:hover { background: #f1f3f5; }
@@ -146,7 +146,7 @@
             .center-sidebar { width: 330px; }
             .right-sidebar { width: 320px; }
             .history-list { max-height: 320px; }
-            .ref-list { max-height: 420px; }
+            .ref-list { max-height: 520px; }
             .monitor-list { max-height: 720px; }
         }
     </style>
@@ -161,11 +161,11 @@
         <div class="modal-overlay" id="configModal">
             <div class="modal-box">
                 <div class="modal-title">
-                    <span>디스코드 웹훅 설정</span>
+                    <span>디스코드 웹훅 설정 (복수 입력 가능)</span>
                     <button type="button" onclick="closeConfigModal()" style="border:none; background:none; font-size:16px; cursor:pointer;">✕</button>
                 </div>
-                <div style="font-size: 12px; color: #666; margin-bottom: 8px;">디스코드 채널 웹훅 URL을 입력하세요.</div>
-                <input type="text" id="webhookInput" class="modal-input" placeholder="https://discord.com/api/webhooks/...">
+                <div style="font-size: 12px; color: #666; margin-bottom: 8px;">디스코드 채널 웹훅 URL을 줄바꿈(엔터)으로 구분하여 여러 개 입력하세요.</div>
+                <textarea id="webhookInput" class="modal-textarea" placeholder="https://discord.com/api/webhooks/...&#10;https://discord.com/api/webhooks/..."></textarea>
                 <div class="modal-btns">
                     <button type="button" class="action-sm-btn" onclick="testDiscordWebhook()" style="background: #198754; color: white; border: none;">테스트 전송</button>
                     <button type="button" class="action-sm-btn" onclick="closeConfigModal()" style="background: #ccc; border: none;">취소</button>
@@ -343,9 +343,8 @@
                     
                     <div style="display: flex; gap: 6px; margin-bottom: 12px; align-items: center;">
                         <select id="intervalSec" style="flex: 1; padding: 6px; font-size: 12px;">
-                            <option value="10000">10초마다</option>
-                            <option value="60000">1분마다</option>
                             <option value="300000" selected>5분마다</option>
+                            <option value="600000">10분마다</option>
                         </select>
                         <button id="toggleMonitorBtn" class="btn primary" style="padding: 6px 12px; font-size: 12px;" onclick="toggleMonitorState()">모니터링 시작</button>
                     </div>
@@ -371,13 +370,13 @@
                     <div class="sidebar-title">
                         <span>📌 참고 바코드 목록</span>
                     </div>
-                    <div class="ref-list" style="max-height: 350px; overflow-y: auto;">
+                    <div class="ref-list" style="max-height: 500px; overflow-y: auto;">
                         <div class="ref-group" id="group-onepiece">
                             <div class="ref-group-header" onclick="toggleRefGroup('group-onepiece')">
                                 <span>원피스카드게임</span>
                                 <span style="font-size: 11px; color: #888;">▼</span>
                             </div>
-                            <div class="ref-sub-items" style="max-height: 200px; overflow-y: auto;">
+                            <div class="ref-sub-items" style="max-height: 250px; overflow-y: auto;">
                                 <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800332710620'; runSearch(true);" title="클릭 시 검색창에 입력">
                                     <div class="ref-name">계승되는의지</div>
                                     <div class="ref-barcode">8800332710620</div>
@@ -398,7 +397,7 @@
                                 <span>포켓몬카드게임</span>
                                 <span style="font-size: 11px; color: #888;">▼</span>
                             </div>
-                            <div class="ref-sub-items" style="max-height: 200px; overflow-y: auto;">
+                            <div class="ref-sub-items" style="max-height: 250px; overflow-y: auto;">
                                 <div class="ref-item" onclick="document.getElementById('barcodeInput').value='8800286278528'; runSearch(true);" title="클릭 시 검색창에 입력">
                                     <div class="ref-name">인페르노X</div>
                                     <div class="ref-barcode">8800286278528</div>
@@ -501,22 +500,41 @@
         }
 
         function openConfigModal() {
-            document.getElementById('webhookInput').value = localStorage.getItem('emart_discord_webhook') || '';
+            // 저장된 웹훅들을 불러와 개행문자(\n)로 결합하여 텍스트상자에 표시
+            let webhooks = loadDiscordWebhooks();
+            document.getElementById('webhookInput').value = webhooks.join('\n');
             document.getElementById('configModal').style.display = 'flex';
         }
         function closeConfigModal() {
             document.getElementById('configModal').style.display = 'none';
         }
         function saveDiscordWebhook() {
-            let url = document.getElementById('webhookInput').value.trim();
-            localStorage.setItem('emart_discord_webhook', url);
-            alert("디스코드 웹훅 주소가 저장되었습니다!");
+            let rawText = document.getElementById('webhookInput').value;
+            let urls = rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+            localStorage.setItem('emart_discord_webhooks', JSON.stringify(urls));
+            alert("디스코드 웹훅 주소들이 저장되었습니다!");
             closeConfigModal();
         }
+        function loadDiscordWebhooks() {
+            let saved = localStorage.getItem('emart_discord_webhooks');
+            if (saved) {
+                try {
+                    let parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed)) return parsed;
+                } catch(e) {}
+            }
+            // 하위 호환성 (기존 단일 웹훅 저장소 데이터 가져오기)
+            let oldSingle = localStorage.getItem('emart_discord_webhook');
+            if (oldSingle && oldSingle.trim() !== "") {
+                return [oldSingle.trim()];
+            }
+            return [];
+        }
         function testDiscordWebhook() {
-            let url = document.getElementById('webhookInput').value.trim();
-            if (!url) {
-                alert("테스트할 웹훅 주소를 먼저 입력해주세요!");
+            let rawText = document.getElementById('webhookInput').value;
+            let urls = rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+            if (urls.length === 0) {
+                alert("테스트할 웹훅 주소를 먼저 하나 이상 입력해주세요!");
                 return;
             }
             
@@ -534,22 +552,14 @@
                 }]
             };
 
-            fetch(url, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            }).then(res => {
-                if (res.ok || res.status === 204) {
-                    alert("테스트 메시지 전송 성공!");
-                } else {
-                    alert("전송 실패. 웹훅 주소를 다시 확인해주세요.");
-                }
-            }).catch(err => {
-                alert("전송 오류 발생: " + err);
+            urls.forEach(url => {
+                fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ embeds: [payload.embeds[0]] })
+                }).catch(err => console.error("Test Webhook Error:", err));
             });
-        }
-        function loadDiscordWebhook() {
-            return localStorage.getItem('emart_discord_webhook') || '';
+            alert("입력한 모든 웹훅 주소로 테스트 메시지를 전송했습니다!");
         }
 
         function toggleResultHide() {
@@ -567,8 +577,8 @@
         }
 
         function sendDiscordWebhook(payload) {
-            let webhookUrl = loadDiscordWebhook();
-            if (!webhookUrl || webhookUrl.trim() === "") return;
+            let webhookUrls = loadDiscordWebhooks();
+            if (!webhookUrls || webhookUrls.length === 0) return;
             
             let bodyData = {};
             if (typeof payload === 'string') {
@@ -577,11 +587,13 @@
                 bodyData = { embeds: [payload] };
             }
 
-            fetch(webhookUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(bodyData)
-            }).catch(err => console.error("Discord Webhook Error:", err));
+            webhookUrls.forEach(url => {
+                fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(bodyData)
+                }).catch(err => console.error("Discord Webhook Error:", err));
+            });
         }
 
         function requestDesktopPermission() {
@@ -828,6 +840,16 @@
                 listEl.innerHTML = '<div style="font-size: 12px; color: #888; text-align: center; padding: 15px 0;">감시 중인 상품 없음</div>';
                 return;
             }
+
+            // 구매 가능한 상품(stockCount > 0)이 위로 오도록 정렬
+            keys.sort((a, b) => {
+                let stockA = activeMonitors[a].stockCount > 0 ? 1 : 0;
+                let stockB = activeMonitors[b].stockCount > 0 ? 1 : 0;
+                if (stockA !== stockB) {
+                    return stockB - stockA;
+                }
+                return 0;
+            });
 
             keys.forEach(barcode => {
                 let item = activeMonitors[barcode];
@@ -1134,7 +1156,7 @@
                     let aHasStock = a.stockQty !== 0 ? 1 : 0;
                     let bHasStock = b.stockQty !== 0 ? 1 : 0;
                     if (aHasStock !== bHasStock) {
-                        return bHasStock - bHasStock; // Correct comparison logic
+                        return bHasStock - aHasStock;
                     }
                     if (a.stockQty !== b.stockQty) {
                         return b.stockQty - a.stockQty;
